@@ -1,0 +1,3 @@
+[submodule "rimba"]
+	path = rimba
+	url = https://github.com/rimba-meshing/rimba.git

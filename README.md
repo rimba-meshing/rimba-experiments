@@ -79,9 +79,17 @@ ranges, repetitions, output locations, or individual protocol sections.
 ## Requirements and data
 
 The complete protocol is intended for a Linux workstation with an NVIDIA GPU.
-It requires CMake 4.2 or newer, a C++23 compiler, the CUDA Toolkit and `nvcc`,
-and Python 3.10 or newer for orchestration and analysis. KITTI odometry and
-MaiCity data are downloaded separately and remain outside this repository.
+It requires CMake 4.2 or newer, a C++23-compatible host compiler, CUDA Toolkit
+with `nvcc`, and Python 3.10 or newer for orchestration and analysis. CUDA
+Toolkit 13.2.78 is the oldest version recorded in the development history;
+treat it as a known baseline, not a verified minimum. Earlier versions have
+not been tested against this repository. RIMBA builds host sources as C++23
+and CUDA translation units as CUDA C++20. Select a host compiler supported by
+the installed `nvcc`; NVIDIA documents the CUDA 13.2 host-compiler and platform
+matrix in its
+[Linux installation guide](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-installation-guide-linux/index.html).
+KITTI odometry and MaiCity data are downloaded separately and remain outside
+this repository.
 
 The protocol defaults to KITTI sequence `07` and MaiCity sequence `01`. It
 checks the available contiguous frame files before running. The optional
@@ -124,6 +132,14 @@ added deliberately when they are ready to share.
   passes are separate from throughput runs; consult the protocol before
   comparing their measurements.
 
-The repository currently documents the paper protocol and its tooling. Formal
-publication citation and license information will be added when the associated
-paper and release terms are finalized.
+## Paper and citation
+
+The paper describing RIMBA is in preparation.
+
+- **Paper link:** To be added when the paper is publicly available.
+- **Citation:** BibTeX entry to be added with the publication details.
+
+## License
+
+The experiment protocols and analysis tools in this repository are distributed
+under the MIT License. See [LICENSE](LICENSE) for the full text.

@@ -21,7 +21,14 @@ Keep the `rimba` submodule pointer unchanged when reproducing a published run.
 
 - Linux workstation with an NVIDIA GPU
 - CMake 4.2 or newer
-- C++23 compiler, CUDA toolkit and `nvcc`
+- C++23-compatible host compiler, CUDA Toolkit with `nvcc`, and CUDA C++20
+  support for CUDA translation units
+- CUDA Toolkit 13.2.78 is the oldest version recorded in the development
+  history; treat it as a known baseline, not a verified minimum. Earlier
+  versions have not been tested against this repository. See NVIDIA's [CUDA
+  13.2 Linux installation
+  guide](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-installation-guide-linux/index.html)
+  for its supported host compiler and platform matrix.
 - Python 3.10 or newer for orchestration and analysis
 - KITTI odometry and MaiCity datasets downloaded separately
 

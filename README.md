@@ -28,6 +28,8 @@ MaiCity datasets, and generated run outputs are ignored by Git by default.
   collects logs and output tables.
 - `tools/benchmark_statistics.py`: summarizes repeated throughput runs and
   computes confidence intervals.
+- `tools/check_protocol.py`: checks completed sections, raw samples, derived
+  statistics, process-memory traces, and optional quality scores.
 - `tools/evaluate_maicity_tnt.py`: optional MaiCity evaluation using the
   modified Tanks and Temples evaluator.
 - `REPRODUCIBILITY.md`: machine requirements, dataset setup, commands, and
@@ -71,6 +73,7 @@ Run the configured protocol into a new timestamped directory:
 ```bash
 python3 tools/run_paper_protocol.py \
   --require-clean \
+  --keep-ablation-meshes \
   --output "results/paper_protocol/$(date +%Y%m%d_%H%M%S)"
 ```
 

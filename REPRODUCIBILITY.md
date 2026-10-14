@@ -68,6 +68,7 @@ Run the full throughput, scheduler, memory, and stage-timing protocol:
 ```bash
 python3 tools/run_paper_protocol.py \
   --require-clean \
+  --keep-ablation-meshes \
   --output "results/paper_protocol/$(date +%Y%m%d_%H%M%S)"
 ```
 
@@ -78,3 +79,22 @@ separately when preparing a release or paper submission.
 
 See [protocols/paper_protocol.md](protocols/paper_protocol.md) for measurement
 boundaries, variants, quality settings, and interpretation of the statistics.
+
+## Check the result bundle
+
+For the complete KITTI 07 / MaiCity 01 sequences used in this protocol:
+
+```bash
+python3 tools/check_protocol.py results/paper_protocol/my-run \
+  --expected-kitti-frames 1101 --expected-maicity-frames 100 \
+  --output results/paper_protocol/my-run/verification.json
+```
+
+The check requires all 18 measurement sections, 3 warmups and 10 measured
+repetitions for throughput, positive process-memory peaks, and all three
+quality evaluations. It recomputes the throughput statistics from the saved
+samples. Use `--skip-quality` when that optional evaluation was omitted.
+For a short diagnostic interval, supply its actual frame counts. Nonstandard
+repetitions require explicit `--expected-warmups` and `--expected-runs`.
+The JSON report preserves the recorded source and experiments revisions and
+states the checked intervals. Keep it with the logs and commands.

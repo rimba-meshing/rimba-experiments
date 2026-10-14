@@ -98,3 +98,5 @@ precision/recall/F1 can vary slightly between runs.
 
 For figures, keep the same mounts and replace the container command with the
 commands in [../protocols/figures.md](../protocols/figures.md).
+The same image can check a completed bundle with `tools/check_protocol.py`;
+see [../REPRODUCIBILITY.md](../REPRODUCIBILITY.md#check-the-result-bundle).

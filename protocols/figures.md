@@ -1,9 +1,9 @@
 # Static method figures
 
-All commands below run from the experiments repository. NumPy, Matplotlib,
-and Pillow are included in the Docker image's `figures` and `quality` targets.
-For a native Python 3.12 environment, install the versions in
-`docker/requirements-figures.txt`. Use the same versions and settings when
+All commands below run from the experiments repository with NumPy, Matplotlib,
+and Pillow installed. For Python 3.12, install the versions in
+`requirements-figures.txt` with the constraints in `requirements.lock.txt`.
+Use the same versions and settings when
 comparing rendered images; image file metadata can also affect byte hashes.
 
 ## Sparse and completed range images
@@ -55,7 +55,7 @@ recorded in the output metadata. No mesh or historical image is needed.
 
 ```bash
 python3 tools/render_mesh_xy_solid.py \
-  results/paper_protocol/docker-full/meshes/maicity_reference_pre_scan_polyline_throughput.ply \
+  results/paper_protocol/my-run/meshes/maicity_reference_pre_scan_polyline_throughput.ply \
   --output results/figures/mesh-xy.png --no-label \
   --bounds -5 55 -14 14
 ```

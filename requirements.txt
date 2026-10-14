@@ -1,0 +1,4 @@
+# Complete analysis and quality environment (verified on Python 3.12).
+cmake==4.2.3
+-r requirements-figures.txt
+-r requirements-quality.txt

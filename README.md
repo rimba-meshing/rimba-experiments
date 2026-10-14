@@ -22,6 +22,8 @@ MaiCity datasets, and generated run outputs are ignored by Git by default.
 ## Repository layout
 
 - `rimba/`: pinned source checkout used by the protocol.
+- `reproduce.py`: single entry point to build, measure, validate, and generate
+  a report in the prepared environment.
 - `protocols/paper_protocol.md`: experiment definitions, datasets, variants,
   measurement boundaries, and interpretation guidance.
 - `tools/run_paper_protocol.py`: configures builds, runs measurements, and
@@ -30,12 +32,14 @@ MaiCity datasets, and generated run outputs are ignored by Git by default.
   computes confidence intervals.
 - `tools/check_protocol.py`: checks completed sections, raw samples, derived
   statistics, process-memory traces, and optional quality scores.
+- `tools/report_protocol.py`: readable result tables and PNG/PDF plots from a
+  checked bundle.
 - `tools/evaluate_maicity_tnt.py`: optional MaiCity evaluation using the
   modified Tanks and Temples evaluator.
 - `REPRODUCIBILITY.md`: machine requirements, dataset setup, commands, and
   output details.
-- `docker/`: a clean CUDA environment, pinned Python dependencies, and commands
-  for running this repository without host builds or Python environments.
+- `requirements*.txt`: pinned Python dependencies for analysis, figures, and
+  geometric-quality evaluation.
 - `protocols/figures.md`: regenerate static method figures from scans and
   captured range arrays with the renderers in `tools/`.
 - `results/`: local protocol output directory; ignored by Git.
@@ -55,40 +59,49 @@ If the repository was cloned without submodules, initialize them with:
 git submodule update --init --recursive
 ```
 
-Set the dataset roots on the machine where the measurements will run:
+Prepare the [required environment and evaluator](REPRODUCIBILITY.md#requirements),
+then set the input paths on the machine where the measurements will run:
 
 ```bash
-export RI_KITTI_DATASET=/path/to/kitti/odometry
+export RI_KITTI_DATASET=/path/to/kitti/odometry/dataset
 export RI_MAICITY_DATASET=/path/to/maicity/bin
+export RI_MAICITY_GROUND_TRUTH=/path/to/maicity/bin/sequences/02/global.ply
+export RI_TNT_RUNNER=/path/to/TanksAndTemples/python_toolbox/evaluation/run.py
 ```
 
 Inspect the planned commands without running the full protocol:
 
 ```bash
-python3 tools/run_paper_protocol.py --dry-run --skip-quality
+python3 reproduce.py --dry-run
 ```
 
-Run the configured protocol into a new timestamped directory:
+Run the complete RIMBA protocol with one command:
 
 ```bash
-python3 tools/run_paper_protocol.py \
-  --require-clean \
-  --keep-ablation-meshes \
-  --output "results/paper_protocol/$(date +%Y%m%d_%H%M%S)"
+python3 reproduce.py
 ```
 
-The full run builds and measures the main configuration and scheduler
-variants, performs separate memory and stage-timing passes, and runs the
-optional quality evaluation when a reference cloud and evaluator are
-configured. Use `--help` to see options for selecting dataset paths, frame
-ranges, repetitions, output locations, or individual protocol sections.
+The script checks prerequisites, builds three CUDA configurations, runs all
+18 measurement sections and three quality evaluations, checks the saved
+results, and writes `report/README.md` with tables and PNG/PDF plots. Outputs
+go to a new timestamped directory under `results/paper_protocol/`. It uses
+the current environment and does not install software or fetch datasets.
+
+The full protocol uses all 1101 KITTI 07 and 100 MaiCity 01 frames, with 3
+warmups and 10 measured throughput repetitions per variant. Allow substantial
+runtime and disk space for six sequence meshes and evaluation outputs.
+Use `--skip-quality` for meshing measurements only, or
+`--diagnostic-frame-count 20` for a clearly labelled short run. Existing
+bundles can be checked and summarized with `--report-only PATH`.
+`tools/run_paper_protocol.py` remains available for advanced frame ranges,
+repetitions, or individual sections.
 
 ## Requirements and data
 
 The complete protocol is intended for a Linux workstation with an NVIDIA GPU.
 It requires CMake 4.2 or newer, a C++23-compatible host compiler, CUDA Toolkit
 with `nvcc`, and Python 3.10 or newer for orchestration and analysis. The
-container workflow uses CUDA Toolkit 13.2.0 (`nvcc V13.2.51`), GCC 13.3,
+verified environment uses CUDA Toolkit 13.2.0 (`nvcc V13.2.51`), GCC 13.3,
 CMake 4.2.3, and Python 3.12.3. Earlier CUDA releases have not been verified.
 RIMBA builds host sources as C++23
 and CUDA translation units as CUDA C++20. Select a host compiler supported by
@@ -99,14 +112,13 @@ KITTI odometry and MaiCity data are downloaded separately and remain outside
 this repository.
 
 The protocol defaults to KITTI sequence `07` and MaiCity sequence `01`. It
-checks the available contiguous frame files before running. The optional
+checks the configured frame files before running. The
 Tanks and Temples quality pass also requires the modified evaluator checkout
 and an independent MaiCity reference cloud. Configure the evaluator with
 `RI_TNT_RUNNER` or `--quality-runner`, and provide the reference with
 `RI_MAICITY_GROUND_TRUTH` or `--quality-ground-truth`.
 
 See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for setup,
-[docker/README.md](docker/README.md) for a clean container workflow,
 [protocols/figures.md](protocols/figures.md) for static figures, and
 [protocols/paper_protocol.md](protocols/paper_protocol.md) for the exact
 measurement plan and current configuration. The meshing implementation is

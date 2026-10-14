@@ -28,9 +28,9 @@ and commands are documented in [protocols/figures.md](protocols/figures.md).
 - CMake 4.2 or newer
 - C++23-compatible host compiler, CUDA Toolkit with `nvcc`, and CUDA C++20
   support for CUDA translation units
-- CUDA Toolkit 13.2.78 is the oldest version recorded in the development
-  history; treat it as a known baseline, not a verified minimum. Earlier
-  versions have not been tested against this repository. See NVIDIA's [CUDA
+- The container workflow uses CUDA Toolkit 13.2.0 (`nvcc V13.2.51`), GCC 13.3,
+  CMake 4.2.3, and Python 3.12.3. Earlier CUDA releases have not been verified.
+  See NVIDIA's [CUDA
   13.2 Linux installation
   guide](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-installation-guide-linux/index.html)
   for its supported host compiler and platform matrix.

@@ -13,8 +13,18 @@ architecture detection or meshing measurements.
 
 Use a Linux host with Docker, an NVIDIA driver, and the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
-Check GPU access with `docker run --rm --gpus all
-nvidia/cuda:13.2.0-devel-ubuntu24.04 nvidia-smi`.
+The NVIDIA runtime must be registered with Docker as described in NVIDIA's
+installation guide. Check GPU access with:
+
+```bash
+docker run --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all \
+  nvidia/cuda:13.2.0-devel-ubuntu24.04 nvidia-smi
+```
+
+On Docker with native CDI support, `--device=nvidia.com/gpu=all` is another
+explicit NVIDIA selection. An unqualified `--gpus all` can select another
+vendor on a host with multiple GPU vendors; use an explicit NVIDIA selection
+for this CUDA workflow.
 KITTI and MaiCity remain external read-only inputs. Their roots must have
 `sequences/<sequence>/velodyne/*.bin`, `poses.txt`, and `calib.txt`. Quality
 evaluation additionally uses MaiCity sequence 02's independent `global.ply`.
@@ -35,7 +45,7 @@ protocol and static renderers without Open3D.
 ## Full protocol
 
 ```bash
-docker run --rm --gpus all --pid=host \
+docker run --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --pid=host \
   --user "$(id -u):$(id -g)" \
   --mount "type=bind,src=$PWD,dst=/workspace" \
   --mount "type=bind,src=$RI_KITTI_DATASET,dst=/datasets/kitti,readonly" \
@@ -51,8 +61,9 @@ docker run --rm --gpus all --pid=host \
 Choose a new output directory for each run. For the first run, `rimba/build/`
 must contain no builds copied from another environment. Subsequent processes
 can reuse this container's builds. Do not mount a host virtual environment.
-`--pid=host` makes process IDs seen in `/proc` agree with the host IDs reported
-by NVML, allowing the existing sampler to attribute process VRAM correctly.
+The documented invocation uses `--pid=host` so process IDs seen in `/proc`
+and by NVML share the host namespace. This keeps process-VRAM attribution
+independent of driver-specific PID translation inside an isolated namespace.
 The dataset mounts are read-only and output files belong to the calling user.
 
 For a diagnostic run, append `--kitti-frame-count 20 --maicity-frame-count 20`.

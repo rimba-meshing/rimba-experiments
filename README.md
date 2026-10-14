@@ -84,10 +84,10 @@ ranges, repetitions, output locations, or individual protocol sections.
 
 The complete protocol is intended for a Linux workstation with an NVIDIA GPU.
 It requires CMake 4.2 or newer, a C++23-compatible host compiler, CUDA Toolkit
-with `nvcc`, and Python 3.10 or newer for orchestration and analysis. CUDA
-Toolkit 13.2.78 is the oldest version recorded in the development history;
-treat it as a known baseline, not a verified minimum. Earlier versions have
-not been tested against this repository. RIMBA builds host sources as C++23
+with `nvcc`, and Python 3.10 or newer for orchestration and analysis. The
+container workflow uses CUDA Toolkit 13.2.0 (`nvcc V13.2.51`), GCC 13.3,
+CMake 4.2.3, and Python 3.12.3. Earlier CUDA releases have not been verified.
+RIMBA builds host sources as C++23
 and CUDA translation units as CUDA C++20. Select a host compiler supported by
 the installed `nvcc`; NVIDIA documents the CUDA 13.2 host-compiler and platform
 matrix in its

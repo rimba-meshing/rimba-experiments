@@ -5,6 +5,9 @@ source submodule initialized. The image installs dependencies only; it contains
 no RIMBA binaries or local results. Compilation takes place from `rimba/` when
 the protocol is launched.
 
+See [VALIDATION.md](VALIDATION.md) for the tested source revisions, environment,
+complete sequence checks, and current test limitations.
+
 Do not interpret successful image construction as a GPU runtime check. The
 host GPU check below must succeed before launching CUDA builds with `native`
 architecture detection or meshing measurements.

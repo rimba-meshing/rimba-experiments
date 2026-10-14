@@ -32,6 +32,10 @@ MaiCity datasets, and generated run outputs are ignored by Git by default.
   modified Tanks and Temples evaluator.
 - `REPRODUCIBILITY.md`: machine requirements, dataset setup, commands, and
   output details.
+- `docker/`: a clean CUDA environment, pinned Python dependencies, and commands
+  for running this repository without host builds or Python environments.
+- `protocols/figures.md`: regenerate static method figures from scans and
+  captured range arrays with the renderers in `tools/`.
 - `results/`: local protocol output directory; ignored by Git.
 
 ## Quick start
@@ -98,7 +102,9 @@ and an independent MaiCity reference cloud. Configure the evaluator with
 `RI_TNT_RUNNER` or `--quality-runner`, and provide the reference with
 `RI_MAICITY_GROUND_TRUTH` or `--quality-ground-truth`.
 
-See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the full setup procedure and
+See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for setup,
+[docker/README.md](docker/README.md) for a clean container workflow,
+[protocols/figures.md](protocols/figures.md) for static figures, and
 [protocols/paper_protocol.md](protocols/paper_protocol.md) for the exact
 measurement plan and current configuration. The meshing implementation is
 C++/CUDA; Python is used here for orchestration, evaluation integration, and

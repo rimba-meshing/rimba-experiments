@@ -19,6 +19,11 @@ Keep the `rimba` submodule pointer unchanged when reproducing a published run.
 
 ## Requirements
 
+For a concrete environment with pinned versions, use the
+[Docker workflow](docker/README.md). It starts from this repository's pinned
+source and builds all executables in the container. Static figure dependencies
+and commands are documented in [protocols/figures.md](protocols/figures.md).
+
 - Linux workstation with an NVIDIA GPU
 - CMake 4.2 or newer
 - C++23-compatible host compiler, CUDA Toolkit with `nvcc`, and CUDA C++20

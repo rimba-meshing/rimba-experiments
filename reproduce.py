@@ -73,7 +73,7 @@ def check_python(quality: bool) -> dict[str, str]:
 
 def check_dataset(root: Path | None, sequence: str, count: int, variable: str) -> None:
     if root is None:
-        raise ValueError(f"Set {variable} or pass its dataset option; see REPRODUCIBILITY.md.")
+        raise ValueError(f"Set {variable} or pass its dataset option; see README.md#datasets.")
     directory = root / "sequences" / sequence
     for name in ("poses.txt", "calib.txt"):
         if not (directory / name).is_file():
@@ -90,7 +90,7 @@ def check_quality(args: argparse.Namespace) -> None:
         raise ValueError("Supply RI_MAICITY_GROUND_TRUTH (independent sequence-02 global.ply), or --skip-quality.")
     runner = args.quality_runner
     if runner is None or not runner.is_file():
-        raise ValueError("Supply RI_TNT_RUNNER; see the evaluator setup in REPRODUCIBILITY.md, or --skip-quality.")
+        raise ValueError("Supply RI_TNT_RUNNER; see README.md#quality-evaluation, or --skip-quality.")
     repo = runner.parents[2]
     if capture(["git", "-C", str(repo), "rev-parse", "HEAD"]) != EVALUATOR_COMMIT:
         raise ValueError(f"The quality evaluator must be pinned to {EVALUATOR_COMMIT}.")

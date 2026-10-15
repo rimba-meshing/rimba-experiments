@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the reproducible measurements described in ``paper_protocol.md``.
+"""Run the RIMBA experiments described in the repository README.
 
 The script is intentionally orchestration-only: it does not change the
 pipeline configuration and it never modifies tracked repository files. It

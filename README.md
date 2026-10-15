@@ -1,66 +1,67 @@
 # RIMBA Experiments
 
-This repository contains the protocols, launch scripts, and analysis utilities
-used to reproduce and inspect RIMBA measurements. It covers the current paper
-protocol for throughput, scheduler ablations, memory, stage timings, and an
-optional geometric-quality evaluation.
+This repository contains the scripts and tools to reproduce the RIMBA experiments
+and generate results, tables, and figures.
 
-The RIMBA implementation is included as the `rimba/` Git submodule. Each
-experiments-repository revision therefore records the source revision selected
-for that protocol snapshot. This repository does not include the KITTI or
-MaiCity datasets, and generated run outputs are ignored by Git by default.
+## Repository structure
 
-## Repositories
+- `rimba/`: RIMBA library submodule.
+- `reproduce.py`: experiment launcher.
+- `tools/`: evaluation, analysis, and rendering tools.
+- `results/`: generated measurements, meshes, and reports.
 
-- [RIMBA](https://github.com/rimba-meshing/rimba): C++23/CUDA algorithm,
-  executable, public headers, and tests. Included here as the `rimba/` submodule.
-- [RIMBA Experiments](https://github.com/rimba-meshing/rimba-experiments):
-  protocols and tooling in this repository.
-- [RIMBA Meshing organization](https://github.com/rimba-meshing): home of the
-  RIMBA repositories.
+## Requirements
 
-## Repository layout
+- Linux x86_64 and an NVIDIA GPU with a CUDA-compatible driver and NVML support.
+- CUDA Toolkit with `nvcc` and CUDA C++20 support.
+- A C++23 compiler with OpenMP support.
+- CMake **4.2 or newer**, Make, Git, and GNU `time` at `/usr/bin/time`.
+- Python **3.12** with NumPy, Matplotlib, Pillow, and Open3D CPU.
+- Open3D runtime libraries: `libegl1`, `libgl1`, and `libgomp1` on Ubuntu.
 
-- `rimba/`: pinned source checkout used by the protocol.
-- `reproduce.py`: single entry point to build, measure, validate, and generate
-  a report in the prepared environment.
-- `protocols/paper_protocol.md`: experiment definitions, datasets, variants,
-  measurement boundaries, and interpretation guidance.
-- `tools/run_paper_protocol.py`: configures builds, runs measurements, and
-  collects logs and output tables.
-- `tools/benchmark_statistics.py`: summarizes repeated throughput runs and
-  computes confidence intervals.
-- `tools/check_protocol.py`: checks completed sections, raw samples, derived
-  statistics, process-memory traces, and optional quality scores.
-- `tools/report_protocol.py`: readable result tables and PNG/PDF plots from a
-  checked bundle.
-- `tools/evaluate_maicity_tnt.py`: optional MaiCity evaluation using the
-  modified Tanks and Temples evaluator.
-- `REPRODUCIBILITY.md`: machine requirements, dataset setup, commands, and
-  output details.
-- `requirements*.txt`: pinned Python dependencies for analysis, figures, and
-  geometric-quality evaluation.
-- `protocols/figures.md`: regenerate static method figures from scans and
-  captured range arrays with the renderers in `tools/`.
-- `results/`: local protocol output directory; ignored by Git.
+Verified toolchain: Ubuntu 24.04, CUDA **13.2.0** (`nvcc 13.2.51`), GCC **13.3**,
+and CMake **4.2.3**. Earlier CUDA releases have not been verified.
 
-## Quick start
+## Setup
 
-Clone this repository with the source submodule initialized:
+Clone the repository and install the Python dependencies:
 
 ```bash
 git clone --recurse-submodules https://github.com/rimba-meshing/rimba-experiments.git
 cd rimba-experiments
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt -c requirements.lock.txt
 ```
 
-If the repository was cloned without submodules, initialize them with:
+### Quality evaluation
+
+- Evaluator: [RuanJY/TanksAndTemples](https://github.com/RuanJY/TanksAndTemples).
+- Use the fixed revision below without local modifications.
+- Python dependencies are included in the installation above.
 
 ```bash
-git submodule update --init --recursive
+git clone https://github.com/RuanJY/TanksAndTemples.git /path/to/TanksAndTemples
+git -C /path/to/TanksAndTemples checkout --detach 06f6537b471fd939eaed78678b3c0ebd22bd398a
 ```
 
-Prepare the [required environment and evaluator](REPRODUCIBILITY.md#requirements),
-then set the input paths on the machine where the measurements will run:
+### Datasets
+
+- **KITTI odometry:** sequence `07`, 1101 frames.
+- **MaiCity:** sequence `01`, 100 frames.
+- **Quality reference:** an independent point cloud accumulated from MaiCity
+  sequence `02`, in the same global coordinate system.
+
+Each dataset root must contain:
+
+```text
+sequences/<sequence>/
+├── velodyne/000000.bin, 000001.bin, ...
+├── poses.txt
+└── calib.txt
+```
+
+Set the input paths:
 
 ```bash
 export RI_KITTI_DATASET=/path/to/kitti/odometry/dataset
@@ -69,98 +70,45 @@ export RI_MAICITY_GROUND_TRUTH=/path/to/maicity/bin/sequences/02/global.ply
 export RI_TNT_RUNNER=/path/to/TanksAndTemples/python_toolbox/evaluation/run.py
 ```
 
-Inspect the planned commands without running the full protocol:
-
-```bash
-python3 reproduce.py --dry-run
-```
-
-Run the complete RIMBA protocol with one command:
+## Run the experiments
 
 ```bash
 python3 reproduce.py
 ```
 
-The script checks prerequisites, builds three CUDA configurations, runs all
-18 measurement sections and three quality evaluations, checks the saved
-results, and writes `report/README.md` with tables and PNG/PDF plots. Outputs
-go to a new timestamped directory under `results/paper_protocol/`. It uses
-the current environment and does not install software or fetch datasets.
+The script builds RIMBA, runs the experiments, validates the results, and
+writes tables and plots to `results/paper_protocol/<run>/report/README.md`.
 
-The full protocol uses all 1101 KITTI 07 and 100 MaiCity 01 frames, with 3
-warmups and 10 measured throughput repetitions per variant. Allow substantial
-runtime and disk space for six sequence meshes and evaluation outputs.
-Use `--skip-quality` for meshing measurements only, or
-`--diagnostic-frame-count 20` for a clearly labelled short run. Existing
-bundles can be checked and summarized with `--report-only PATH`.
-`tools/run_paper_protocol.py` remains available for advanced frame ranges,
-repetitions, or individual sections.
+- Variants: sequential, pre-scan, and pre-scan with the polyline blocker.
+- Throughput: 3 warmups and 10 measured repetitions per variant.
+- Memory, stage timings, and geometric quality are measured separately.
+- Meshing times exclude dataset loading and PLY writing.
+- Runtime and memory depend on hardware and load. Quality scores can vary
+  slightly because the evaluator samples mesh points randomly.
+- Comparisons with other methods require their own runs.
 
-## Requirements and data
+Useful options:
 
-The complete protocol is intended for a Linux workstation with an NVIDIA GPU.
-It requires CMake 4.2 or newer, a C++23-compatible host compiler, CUDA Toolkit
-with `nvcc`, and Python 3.10 or newer for orchestration and analysis. The
-verified environment uses CUDA Toolkit 13.2.0 (`nvcc V13.2.51`), GCC 13.3,
-CMake 4.2.3, and Python 3.12.3. Earlier CUDA releases have not been verified.
-RIMBA builds host sources as C++23
-and CUDA translation units as CUDA C++20. Select a host compiler supported by
-the installed `nvcc`; NVIDIA documents the CUDA 13.2 host-compiler and platform
-matrix in its
-[Linux installation guide](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-installation-guide-linux/index.html).
-KITTI odometry and MaiCity data are downloaded separately and remain outside
-this repository.
+- `--skip-quality`: omit geometric-quality evaluation.
+- `--diagnostic-frame-count 20`: run a short diagnostic interval.
+- `--report-only PATH`: validate and summarize existing results.
+- `--help`: show all launcher options.
 
-The protocol defaults to KITTI sequence `07` and MaiCity sequence `01`. It
-checks the configured frame files before running. The
-Tanks and Temples quality pass also requires the modified evaluator checkout
-and an independent MaiCity reference cloud. Configure the evaluator with
-`RI_TNT_RUNNER` or `--quality-runner`, and provide the reference with
-`RI_MAICITY_GROUND_TRUTH` or `--quality-ground-truth`.
+The individual tools in `tools/` also provide `--help` for custom runs and
+additional figures.
 
-See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for setup,
-[protocols/figures.md](protocols/figures.md) for static figures, and
-[protocols/paper_protocol.md](protocols/paper_protocol.md) for the exact
-measurement plan and current configuration. The meshing implementation is
-C++/CUDA; Python is used here for orchestration, evaluation integration, and
-analysis. The workflow does not require an HPC system or a separate Python
-implementation of the algorithm.
+## Related repositories
 
-## Recorded outputs
-
-Each run directory contains the commands and logs, a `metadata.json` manifest
-with repository revisions and machine/GPU details, raw per-run timings, and
-derived CSV summaries. Depending on the selected protocol sections, outputs
-include throughput statistics, scheduler comparisons, stage timings, memory
-samples, quality metrics, and inputs for qualitative figures.
-
-Raw and diagnostic run directories under `results/` are not tracked by Git.
-This keeps the experiment repository focused on the reproducibility protocol
-and analysis code; only reviewed, publication-ready result artifacts should be
-added deliberately when they are ready to share.
-
-## Reproducibility notes
-
-- Keep the `rimba/` submodule pointer unchanged when reproducing a run tied to
-  this experiments-repository revision.
-- Use `--require-clean` for a protocol run that should be associated with a
-  clean source and experiments checkout.
-- The runner records the source and experiment commits, commands, arguments,
-  machine, and GPU in the output metadata.
-- End-to-end throughput excludes dataset loading and final PLY writing. It
-  includes the meshing call, GPU/host work, transfers, and synchronization.
-- Stage timings are diagnostic and may add instrumentation overhead. Memory
-  passes are separate from throughput runs; consult the protocol before
-  comparing their measurements.
+- [RIMBA](https://github.com/rimba-meshing/rimba): algorithm and library.
+- [RIMBA Meshing](https://github.com/rimba-meshing): project organization.
 
 ## Paper and citation
 
-The paper describing RIMBA is in preparation.
+The RIMBA paper is in preparation.
 
-- **Paper link:** To be added when the paper is publicly available.
-- **Citation:** BibTeX entry to be added with the publication details.
+- **Paper link:** to be added.
+- **Citation:** BibTeX entry to be added after publication.
 
 ## License
 
-The experiment protocols and analysis tools in this repository are distributed
-under the MIT License. See [LICENSE](LICENSE) for the full text.
+[MIT License](LICENSE).

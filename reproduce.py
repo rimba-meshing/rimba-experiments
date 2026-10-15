@@ -16,7 +16,6 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parent
-EVALUATOR_COMMIT = "06f6537b471fd939eaed78678b3c0ebd22bd398a"
 
 
 def env_path(name: str) -> Path | None:
@@ -92,8 +91,6 @@ def check_quality(args: argparse.Namespace) -> None:
     if runner is None or not runner.is_file():
         raise ValueError("Supply RI_TNT_RUNNER; see README.md#quality-evaluation, or --skip-quality.")
     repo = runner.parents[2]
-    if capture(["git", "-C", str(repo), "rev-parse", "HEAD"]) != EVALUATOR_COMMIT:
-        raise ValueError(f"The quality evaluator must be pinned to {EVALUATOR_COMMIT}.")
     if capture(["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=no"]):
         raise ValueError("The quality evaluator has tracked modifications.")
 

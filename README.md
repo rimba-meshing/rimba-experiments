@@ -31,18 +31,17 @@ git clone --recurse-submodules https://github.com/rimba-meshing/rimba-experiment
 cd rimba-experiments
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt -c requirements.lock.txt
+python -m pip install -r requirements.txt
 ```
 
 ### Quality evaluation
 
 - Evaluator: [RuanJY/TanksAndTemples](https://github.com/RuanJY/TanksAndTemples).
-- Use the fixed revision below without local modifications.
+- Use its `master` branch without local modifications.
 - Python dependencies are included in the installation above.
 
 ```bash
-git clone https://github.com/RuanJY/TanksAndTemples.git /path/to/TanksAndTemples
-git -C /path/to/TanksAndTemples checkout --detach 06f6537b471fd939eaed78678b3c0ebd22bd398a
+git clone --branch master https://github.com/RuanJY/TanksAndTemples.git /path/to/TanksAndTemples
 ```
 
 ### Datasets

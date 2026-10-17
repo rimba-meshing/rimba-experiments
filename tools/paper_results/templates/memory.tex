@@ -1,0 +1,30 @@
+\begin{tikzpicture}
+    \begin{groupplot}[
+        group style={group size=2 by 1,horizontal sep=1.15cm},
+        width=0.47\textwidth,
+        height=0.31\textwidth,
+        xlabel={Frame index},
+        tick label style={font=\scriptsize},
+        label style={font=\small},
+        title style={font=\small},
+        grid=major,
+        grid style={black!10},
+        no markers,
+    ]
+        \nextgroupplot[
+            title={Mai City \EvaluationMaiCitySequence},
+            ylabel={Tracked live memory (GiB)},
+            legend to name=evaluation-memory-legend,
+            legend columns=2,
+            legend style={draw=none,font=\scriptsize},
+        ]
+            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{figure_memory_maicity.csv};
+            \addlegendentry{Host live}
+            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{figure_memory_maicity.csv};
+            \addlegendentry{CUDA live}
+        \nextgroupplot[title={KITTI \EvaluationKittiSequence}]
+            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{figure_memory_kitti.csv};
+            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{figure_memory_kitti.csv};
+    \end{groupplot}
+    \path (current bounding box.south) node[below=3pt] {\pgfplotslegendfromname{evaluation-memory-legend}};
+\end{tikzpicture}

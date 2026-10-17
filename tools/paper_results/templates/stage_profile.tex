@@ -1,0 +1,29 @@
+\begin{tikzpicture}
+    \begin{axis}[
+        width=\linewidth,
+        height=0.43\linewidth,
+        ybar stacked,
+        bar width=28pt,
+        ymin=0,
+        enlarge x limits=0.35,
+        ylabel={Instrumented time per frame (ms)},
+        xtick={0,1},
+        xticklabels={{Mai City \EvaluationMaiCitySequence},{KITTI \EvaluationKittiSequence}},
+        tick label style={font=\small},
+        label style={font=\small},
+        legend style={at={(0.5,1.02)},anchor=south,legend columns=2,draw=none,font=\scriptsize},
+        grid=major,
+        grid style={black!10},
+    ]
+        \addplot+[fill=blue!30,draw=black!65] table[col sep=comma,x=x,y=stage_a]{figure_stage_profile.csv};
+        \addlegendentry{A: Angular representation}
+        \addplot+[fill=green!25!gray,draw=black!65] table[col sep=comma,x=x,y=stage_b]{figure_stage_profile.csv};
+        \addlegendentry{B: Novel surface extraction}
+        \addplot+[fill=black!45,draw=black!65] table[col sep=comma,x=x,y=stage_c]{figure_stage_profile.csv};
+        \addlegendentry{C: Adaptive local meshing}
+        \addplot+[fill=red!35,draw=black!65] table[col sep=comma,x=x,y=stage_d]{figure_stage_profile.csv};
+        \addlegendentry{D: Topological integration}
+        \addplot+[fill=black!10,draw=black!55] table[col sep=comma,x=x,y=other]{figure_stage_profile.csv};
+        \addlegendentry{Residual}
+    \end{axis}
+\end{tikzpicture}

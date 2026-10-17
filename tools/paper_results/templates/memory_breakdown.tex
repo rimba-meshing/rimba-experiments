@@ -1,0 +1,36 @@
+\begin{tikzpicture}
+    \begin{groupplot}[
+        group style={group size=2 by 1,horizontal sep=1.15cm},
+        width=0.47\textwidth,
+        height=0.31\textwidth,
+        ymin=0,
+        enlarge x limits=0.35,
+        xtick={0,1},
+        xticklabels={Mai City \EvaluationMaiCitySequence,KITTI \EvaluationKittiSequence},
+        tick label style={font=\scriptsize},
+        label style={font=\small},
+        title style={font=\small},
+        grid=major,
+        grid style={black!10},
+        legend style={draw=none,font=\scriptsize,legend columns=1,cells={anchor=west}},
+    ]
+        \nextgroupplot[ybar stacked,bar width=18pt,ylabel={Live storage (GiB)},title={(a) Device buffers},legend to name=evaluation-gpu-memory-groups]
+            \addplot+[draw=black!60,fill=blue!30] table[col sep=comma,x=x,y=gpu_mesh]{figure_memory_breakdown.csv};
+            \addlegendentry{Persistent mesh}
+            \addplot+[draw=black!60,fill=black!45] table[col sep=comma,x=x,y=gpu_accumulated_depth]{figure_memory_breakdown.csv};
+            \addlegendentry{Stage A visibility}
+            \addplot+[draw=black!60,fill=green!25!gray] table[col sep=comma,x=x,y=gpu_range_meshing]{figure_memory_breakdown.csv};
+            \addlegendentry{Shared A--C buffers}
+            \addplot+[draw=black!60,fill=red!35] table[col sep=comma,x=x,y=gpu_boundary]{figure_memory_breakdown.csv};
+            \addlegendentry{Stage D boundary}
+        \nextgroupplot[ybar stacked,bar width=18pt,title={(b) Host buffers},legend to name=evaluation-host-memory-groups]
+            \addplot+[draw=black!60,fill=blue!30] table[col sep=comma,x=x,y=host_mesh]{figure_memory_breakdown.csv};
+            \addlegendentry{Geometry mirror (D)}
+            \addplot+[draw=black!60,fill=red!35] table[col sep=comma,x=x,y=host_topology]{figure_memory_breakdown.csv};
+            \addlegendentry{Boundary state (D)}
+            \addplot+[draw=black!60,fill=black!45] table[col sep=comma,x=x,y=host_auxiliary]{figure_memory_breakdown.csv};
+            \addlegendentry{Handoff/chunk index}
+    \end{groupplot}
+    \path (group c1r1.south) node[below=18pt] {\pgfplotslegendfromname{evaluation-gpu-memory-groups}};
+    \path (group c2r1.south) node[below=18pt] {\pgfplotslegendfromname{evaluation-host-memory-groups}};
+\end{tikzpicture}

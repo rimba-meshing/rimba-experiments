@@ -24,6 +24,7 @@ import ctypes.util
 import csv
 import datetime as dt
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -40,7 +41,7 @@ except ModuleNotFoundError:  # Imported as ``tools.run_paper_protocol`` in tests
     from tools.benchmark_statistics import comparison_stats, parse_run_timings, summarize
 
 
-SCRIPT_VERSION = "1.8"
+SCRIPT_VERSION = "1.9"
 DEFAULT_MACRO_ERROR = 0.08
 DEFAULT_CULL_RADIUS = 70.0
 DEFAULT_HOLE_AREA = 50.0
@@ -178,6 +179,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--require-clean", action="store_true")
     parser.add_argument("--keep-ablation-meshes", action="store_true")
+    parser.add_argument("--mesh-policy", choices=("all", "quality", "none"), help="Override mesh retention for paper exports.")
+    parser.add_argument("--max-triangle-dist", type=float, default=0.30, help="Shared continuity/edge limit in metres (paper reference: 0.30, sensitivity: 0.55).")
+    parser.add_argument("--paper-output", action="store_true", help="Measure the paper's scopes without empty templates or auxiliary overlap passes.")
     parser.add_argument("--skip-main", action="store_true")
     parser.add_argument("--skip-ablation", action="store_true")
     parser.add_argument("--skip-memory", action="store_true")
@@ -185,6 +189,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-quality", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if not math.isfinite(args.max_triangle_dist) or args.max_triangle_dist <= 0:
+        parser.error("--max-triangle-dist must be finite and positive")
     args.source_dir = args.source_dir.expanduser().resolve()
     args.cmake = args.cmake or default_cmake(args.source_dir)
     return args
@@ -813,6 +819,7 @@ def run_application(
     effective_warmup = warmup_runs if warmup_runs is not None else (args.memory_warmup_runs if is_memory else args.warmup_runs)
     effective_runs = measured_runs if measured_runs is not None else (args.memory_runs if is_memory else args.runs)
     command = [str(binary), *common_app_args(spec), *variant_args(variant),
+               "--max-triangle-dist", str(args.max_triangle_dist),
                "--warmup-runs", str(effective_warmup),
                "--runs", str(effective_runs),
                "--timing", timing, "--output", str(mesh_path)]
@@ -1255,8 +1262,10 @@ def main() -> int:
         write_csv(result_file, rows)
         write_csv(args.output / "frame_metrics.csv", frame_rows)
         write_csv(args.output / "stage_timings.csv", stage_rows)
-        write_csv(args.output / "stage_summary.csv", stage_summary(stage_rows))
-        write_csv(args.output / "scheduler_timeline.csv", timeline_rows)
+        if not args.paper_output:
+            write_csv(args.output / "stage_summary.csv", stage_summary(stage_rows))
+        if not args.paper_output or timeline_rows:
+            write_csv(args.output / "scheduler_timeline.csv", timeline_rows)
         write_csv(args.output / "memory_stages.csv", memory_rows)
         write_csv(args.output / "run_timings.csv", run_timing_rows)
         write_throughput_statistics(rows, run_timing_rows, args.output)
@@ -1272,6 +1281,8 @@ def main() -> int:
                 print(f"Skipping completed run {run_id}")
                 continue
             keep_mesh = variant == "reference_pre_scan_polyline" or args.keep_ablation_meshes
+            if args.mesh_policy:
+                keep_mesh = args.mesh_policy == "all" or (args.mesh_policy == "quality" and spec["kind"] == "maicity")
             row, summary, frames, stages, timeline, memory_snapshots = run_application(
                 args, spec, variant, "throughput", binaries["benchmark"], args.output,
                 keep_mesh=keep_mesh,
@@ -1320,6 +1331,8 @@ def main() -> int:
     if not args.skip_stage_timing:
         for spec in specs:
             for timing, overlap, label in (("instrumented", True, "stage_overlap"), ("detailed", False, "stage_sequential")):
+                if args.paper_output and overlap:
+                    continue
                 variant = "reference_pre_scan_polyline" if overlap else "scheduler_none"
                 run_id = f"{spec['kind']}_{variant}_{label}"
                 if run_id in completed:
@@ -1337,10 +1350,12 @@ def main() -> int:
                 memory_rows.extend(memory_snapshots)
                 run_timing_rows.extend(run_timing_rows_for(row, summary))
                 persist()
-    write_qualitative_manifest(args, specs, rows, args.output)
-    write_external_template(args.output)
-    write_csv(args.output / "quality.csv", run_optional_quality(args, rows, args.output, root))
-    write_artifact_readme(specs, args.output)
+    if not args.paper_output:
+        write_qualitative_manifest(args, specs, rows, args.output)
+        write_external_template(args.output)
+        write_artifact_readme(specs, args.output)
+    if not args.paper_output or not args.skip_quality:
+        write_csv(args.output / "quality.csv", run_optional_quality(args, rows, args.output, root))
     metadata["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     metadata["result_files"] = [str(path.relative_to(args.output)) for path in sorted(args.output.rglob("*")) if path.is_file()]
     (args.output / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")

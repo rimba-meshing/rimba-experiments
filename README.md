@@ -18,6 +18,9 @@ and generate results, tables, and figures.
 - CMake **4.2 or newer**, Make, Git, and GNU `time` at `/usr/bin/time`.
 - Python **3.12** with NumPy, Matplotlib, Pillow, and Open3D CPU.
 - Open3D runtime libraries: `libegl1`, `libgl1`, and `libgomp1` on Ubuntu.
+- LaTeX with PGFPlots, `standalone`, and `booktabs`. On Ubuntu, install
+  `texlive-latex-extra`, `texlive-pictures`, and `texlive-fonts-recommended`.
+- Poppler's `pdftocairo` for browser previews (`poppler-utils` on Ubuntu).
 
 Verified toolchain: Ubuntu 24.04, CUDA **13.2.0** (`nvcc 13.2.51`), GCC **13.3**,
 and CMake **4.2.3**. Earlier CUDA releases have not been verified.
@@ -76,7 +79,20 @@ python3 reproduce.py
 ```
 
 The script builds RIMBA, runs the experiments, validates the results, and
-writes tables and plots to `results/paper_protocol/<run>/report/README.md`.
+creates `results/paper_protocol/<run>/index.html`. Open that file to browse
+the results in the order of the paper's Evaluation section.
+
+- `geometric_quality/`: quality tables, spatial error maps, and supplied views.
+- `computational_performance/`: runtime, per-frame times, stages, and memory.
+- `scheduling_ablation/`: scheduling performance and its effect on the output.
+- `provenance.json`: measurement revisions, validation, and artifact checksums.
+- `raw.tar.gz`: original measurements and technical logs.
+
+Tables have CSV, LaTeX fragments, and PDF outputs. Figures have their source
+data and PDF, with previews embedded in the index. Standalone LaTeX sources
+are retained in the raw archive. The plots use the manuscript's PGFPlots
+definitions. The index identifies generated outputs, partial
+comparisons, omitted evaluations, and figures needing additional inputs.
 
 - Variants: sequential, pre-scan, and pre-scan with the polyline blocker.
 - Throughput: 3 warmups and 10 measured repetitions per variant.
@@ -91,10 +107,52 @@ Useful options:
 - `--skip-quality`: omit geometric-quality evaluation.
 - `--diagnostic-frame-count 20`: run a short diagnostic interval.
 - `--report-only PATH`: validate and summarize existing results.
+- `--output PATH`: choose a new destination, including for `--report-only`.
+- `--keep-meshes`: retain meshes outside the raw archive for inspection.
+- `--paper-inputs FILE`: include supplied comparison results and matched views.
 - `--help`: show all launcher options.
 
+Convert an existing measurement directory or paper bundle without rerunning
+the experiments:
+
+```bash
+python3 reproduce.py --report-only /path/to/run --output results/paper_from_existing
+```
+
+The original run is preserved. Its frame counts and quality setting are
+detected automatically. `--diagnostic-frame-count` can enforce an expected
+short interval during conversion.
+
+<details>
+<summary>Additional inputs for the full paper comparisons</summary>
+
+The RIMBA run does not execute the external methods. Optional inputs are
+listed in a JSON file, with paths relative to that file:
+
+```json
+{
+  "external_quality": "quality.csv",
+  "external_runtime": "runtime.csv",
+  "sensitivity_results": "sensitivity_run",
+  "qualitative_pdf": {"file": "matched_views.pdf", "source": "capture provenance"}
+}
+```
+
+All fields are optional. Quality CSV columns are `method`, `precision`,
+`recall`, `f1`, `tau_m`, `voxel_size_m`, `sample_points`, and `source`.
+Scores use [0, 1]. Runtime columns are `dataset`, `sequence`, `method`,
+`frames`, `time_ms_per_frame`, `hardware`, and `source`. Supplied values are
+identified in their CSV provenance. A sensitivity directory must contain
+the same evaluation protocol, source revision, and frame interval as the
+reference run, recording `--max-triangle-dist 0.55` in both metadata and
+the mesh-generation command (`tools/run_paper_protocol.py` supports it).
+Matched views are supplied explicitly to preserve the paper's cameras/crops.
+The input files are retained with the archived evidence.
+
+</details>
+
 The individual tools in `tools/` also provide `--help` for custom runs and
-additional figures.
+additional method illustrations.
 
 ## Related repositories
 

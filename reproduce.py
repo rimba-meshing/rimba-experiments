@@ -17,6 +17,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 
+from tools.paper_results.latex import require_rendering
+from tools.paper_results import inputs
+
 
 def env_path(name: str) -> Path | None:
     value = os.environ.get(name)
@@ -35,19 +38,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--diagnostic-frame-count", type=int, help="Use a short interval for both datasets, not the full protocol.")
     parser.add_argument("--output", type=Path, help="New result directory (timestamped by default).")
     parser.add_argument("--dry-run", action="store_true", help="Check prerequisites and print commands without writing results.")
-    parser.add_argument("--report-only", type=Path, metavar="BUNDLE", help="Validate and summarize existing results without rebuilding or measuring.")
+    parser.add_argument("--report-only", type=Path, metavar="BUNDLE", help="Export paper figures and tables from existing measurements into a new output directory.")
+    parser.add_argument("--keep-meshes", action="store_true", help="Retain meshes outside the raw archive for interactive inspection.")
+    parser.add_argument("--paper-inputs", type=Path, help="Optional JSON supplying comparisons, sensitivity results, or matched views.")
     args = parser.parse_args()
     if args.build_jobs < 1 or (args.diagnostic_frame_count is not None and args.diagnostic_frame_count < 1):
         parser.error("Build jobs and diagnostic frame count must be positive.")
-    if args.report_only and args.output:
-        parser.error("--report-only writes under BUNDLE/report; do not combine with --output.")
-    for name in ("kitti_dataset", "maicity_dataset", "quality_ground_truth", "quality_runner", "report_only"):
+    for name in ("kitti_dataset", "maicity_dataset", "quality_ground_truth", "quality_runner", "report_only", "paper_inputs"):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.expanduser().resolve())
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    prefix = "diagnostic" if args.diagnostic_frame_count else "full"
-    args.output = (args.report_only or args.output or ROOT / "results/paper_protocol" / f"{prefix}_{stamp}").expanduser().resolve()
+    prefix = "paper" if args.report_only else "diagnostic" if args.diagnostic_frame_count else "full"
+    args.output = (args.output or ROOT / "results/paper_protocol" / f"{prefix}_{stamp}").expanduser().resolve()
     if args.quality_ground_truth is None and args.maicity_dataset is not None:
         args.quality_ground_truth = args.maicity_dataset / "sequences/02/global.ply"
     return args
@@ -96,9 +99,14 @@ def check_quality(args: argparse.Namespace) -> None:
 
 
 def preflight(args: argparse.Namespace, counts: tuple[int, int]) -> dict:
+    require_rendering()
+    supplied = inputs.load(args.paper_inputs)
+    for kind in ("quality", "runtime"):
+        inputs.external_rows(supplied, kind)
     if args.report_only:
-        if not (args.output / "metadata.json").is_file():
-            raise ValueError(f"No protocol manifest in {args.output}")
+        source = args.report_only
+        if not (source / "metadata.json").is_file() and not (source / "raw.tar.gz").is_file() and not source.is_file():
+            raise ValueError(f"No measurement manifest or raw archive at {source}")
         return {"packages": check_python(False)}
     source = ROOT / "rimba"
     if not (source / "CMakeLists.txt").is_file():
@@ -131,11 +139,13 @@ def preflight(args: argparse.Namespace, counts: tuple[int, int]) -> dict:
 def protocol_command(args: argparse.Namespace, counts: tuple[int, int]) -> list[str]:
     command = [
         sys.executable, str(ROOT / "tools/run_paper_protocol.py"),
-        "--require-clean", "--keep-ablation-meshes", "--output", str(args.output),
+        "--require-clean", "--paper-output", "--output", str(args.output / ".work/raw"),
         "--kitti-dataset", str(args.kitti_dataset), "--maicity-dataset", str(args.maicity_dataset),
         "--kitti-frame-count", str(counts[0]), "--maicity-frame-count", str(counts[1]),
         "--cmake", args.cmake, "--build-jobs", str(args.build_jobs),
     ]
+    policy = "all" if args.keep_meshes else "none" if args.skip_quality else "quality"
+    command += ["--mesh-policy", policy]
     if args.skip_quality:
         command.append("--skip-quality")
     else:
@@ -144,23 +154,25 @@ def protocol_command(args: argparse.Namespace, counts: tuple[int, int]) -> list[
 
 
 def result_commands(args: argparse.Namespace, counts: tuple[int, int]) -> list[list[str]]:
-    check = [
-        sys.executable, str(ROOT / "tools/check_protocol.py"), str(args.output),
-        "--expected-kitti-frames", str(counts[0]), "--expected-maicity-frames", str(counts[1]),
-        "--output", str(args.output / "report/verification.json"),
-    ]
+    source = args.report_only or args.output / ".work/raw"
+    report = [sys.executable, str(ROOT / "tools/report_protocol.py"), str(source), "--output", str(args.output)]
+    if not args.report_only or args.diagnostic_frame_count:
+        report += ["--expected-kitti-frames", str(counts[0]), "--expected-maicity-frames", str(counts[1])]
     if args.skip_quality:
-        check.append("--skip-quality")
-    report = [sys.executable, str(ROOT / "tools/report_protocol.py"), str(args.output)]
-    return [check, report]
+        report.append("--skip-quality")
+    if args.keep_meshes:
+        report.append("--keep-meshes")
+    if args.paper_inputs:
+        report += ["--paper-inputs", str(args.paper_inputs)]
+    return [report]
 
 
 def main() -> None:
     args = parse_args()
     counts = (args.diagnostic_frame_count,) * 2 if args.diagnostic_frame_count else (1101, 100)
-    if not args.report_only and args.output.exists():
+    if args.output.exists():
         raise ValueError(f"Output already exists; select a new directory: {args.output}")
-    if not args.report_only and args.output.is_relative_to(ROOT):
+    if args.output.is_relative_to(ROOT):
         ignored = subprocess.run(["git", "check-ignore", "--quiet", str(args.output)], cwd=ROOT).returncode == 0
         if not ignored:
             raise ValueError("Inside this checkout, choose an output under results/; other outputs must be outside the checkout.")
@@ -174,12 +186,13 @@ def main() -> None:
         print("Prerequisites checked; no builds, measurements, or result files created.")
         return
     if not args.report_only:
-        args.output.mkdir(parents=True)
-        (args.output / "environment.json").write_text(json.dumps(environment, indent=2) + "\n")
-        (args.output / "reproduce-command.txt").write_text(shlex.join([sys.executable, str(ROOT / "reproduce.py"), *sys.argv[1:]]) + "\n")
+        raw = args.output / ".work/raw"
+        raw.mkdir(parents=True)
+        (raw / "environment.json").write_text(json.dumps(environment, indent=2) + "\n")
+        (raw / "reproduce-command.txt").write_text(shlex.join([sys.executable, str(ROOT / "reproduce.py"), *sys.argv[1:]]) + "\n")
     for command in commands:
         subprocess.run(command, cwd=ROOT, check=True)
-    print(f"Validated results and report: {args.output / 'report/README.md'}")
+    print(f"Validated paper results: {args.output / 'index.html'}")
 
 
 if __name__ == "__main__":

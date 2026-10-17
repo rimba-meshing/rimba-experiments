@@ -33,19 +33,21 @@ def csv_rows(root: Path, name: str) -> list[dict[str, str]]:
     return rows
 
 
-def expected_run_ids() -> set[str]:
+def expected_run_ids(paper_output: bool = False) -> set[str]:
     suffixes = [f"{v}_throughput" for v in VARIANTS]
     suffixes += [f"{v}_memory_coarse" for v in VARIANTS]
-    suffixes += ["scheduler_none_memory_detailed", "scheduler_none_stage_sequential",
-                 "reference_pre_scan_polyline_stage_overlap"]
+    suffixes += ["scheduler_none_memory_detailed", "scheduler_none_stage_sequential"]
+    if not paper_output:
+        suffixes.append("reference_pre_scan_polyline_stage_overlap")
     return {f"{dataset}_{suffix}" for dataset in ("kitti", "maicity") for suffix in suffixes}
 
 
-def check_runs(root: Path, expected_frames: dict[str, int | None]) -> dict[str, dict[str, str]]:
+def check_runs(root: Path, expected_frames: dict[str, int | None], paper_output: bool = False) -> dict[str, dict[str, str]]:
     rows = csv_rows(root, "results.csv")
     by_id = {r["run_id"]: r for r in rows}
     require(len(by_id) == len(rows), "Duplicate run IDs")
-    require(set(by_id) == expected_run_ids(), "Expected all 18 protocol sections")
+    expected = expected_run_ids(paper_output)
+    require(set(by_id) == expected, f"Expected all {len(expected)} protocol sections")
     for dataset, expected in expected_frames.items():
         selected = [r for r in rows if r["dataset"] == dataset]
         intervals = {(int(r["start_frame"]), int(r["frame_count"])) for r in selected}
@@ -118,6 +120,37 @@ def check_quality(root: Path) -> None:
             require((directory / name).stat().st_size > 0, f"Missing quality artifact: {name}")
 
 
+def validate_bundle(root: Path, args) -> dict:
+    metadata = json.loads((root / "metadata.json").read_text())
+    require(bool(metadata.get("finished_at")), "Protocol has not finished")
+    for key in ("git", "source_git"):
+        require(bool(metadata[key]["commit"]) and not metadata[key]["status"], f"Missing or dirty revision: {key}")
+    paper_output = metadata["arguments"].get("paper_output", False)
+    runs = check_runs(root, {"kitti": args.expected_kitti_frames, "maicity": args.expected_maicity_frames}, paper_output)
+    timing_count = check_timings(root, runs, (args.expected_warmups, args.expected_runs))
+    check_memory(root, runs)
+    names = ["frame_metrics.csv", "stage_timings.csv", "memory_stages.csv"]
+    if not paper_output:
+        names.append("scheduler_timeline.csv")
+    for name in names:
+        rows = csv_rows(root, name)
+        require(all(r["run_id"] in runs for r in rows), f"Unrecognized runs in {name}")
+        if name == "frame_metrics.csv":
+            for run_id, run in runs.items():
+                frames = [int(r["frame"]) for r in rows if r["run_id"] == run_id]
+                start, count = int(run["start_frame"]), int(run["frame_count"])
+                require(sorted(frames) == list(range(start, start + count)), f"Incomplete frame metrics: {run_id}")
+    if not args.skip_quality:
+        check_quality(root)
+    return {
+        "status": "passed", "checked_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "source_commit": metadata["source_git"]["commit"], "experiments_commit": metadata["git"]["commit"],
+        "protocol_sections": len(runs), "throughput_samples": timing_count,
+        "frame_counts": {d: int(runs[f"{d}_scheduler_none_throughput"]["frame_count"]) for d in ("kitti", "maicity")},
+        "quality_checked": not args.skip_quality,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path)
@@ -129,30 +162,17 @@ def main() -> None:
     parser.add_argument("--output", type=Path, help="Optional JSON verification report.")
     args = parser.parse_args()
     root = args.bundle.expanduser().resolve()
-    metadata = json.loads((root / "metadata.json").read_text())
-    require(bool(metadata.get("finished_at")), "Protocol has not finished")
-    for key in ("git", "source_git"):
-        require(bool(metadata[key]["commit"]) and not metadata[key]["status"], f"Missing or dirty revision: {key}")
-    runs = check_runs(root, {"kitti": args.expected_kitti_frames, "maicity": args.expected_maicity_frames})
-    timing_count = check_timings(root, runs, (args.expected_warmups, args.expected_runs))
-    check_memory(root, runs)
-    for name in ("frame_metrics.csv", "stage_timings.csv", "scheduler_timeline.csv", "memory_stages.csv"):
-        rows = csv_rows(root, name)
-        require(all(r["run_id"] in runs for r in rows), f"Unrecognized runs in {name}")
-        if name == "frame_metrics.csv":
-            for run_id, run in runs.items():
-                frames = [int(r["frame"]) for r in rows if r["run_id"] == run_id]
-                start, count = int(run["start_frame"]), int(run["frame_count"])
-                require(sorted(frames) == list(range(start, start + count)), f"Incomplete frame metrics: {run_id}")
-    if not args.skip_quality:
-        check_quality(root)
-    report = {
-        "status": "passed", "checked_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-        "source_commit": metadata["source_git"]["commit"], "experiments_commit": metadata["git"]["commit"],
-        "protocol_sections": len(runs), "throughput_samples": timing_count,
-        "frame_counts": {d: int(runs[f"{d}_scheduler_none_throughput"]["frame_count"]) for d in ("kitti", "maicity")},
-        "quality_checked": not args.skip_quality,
-    }
+    if (root / "provenance.json").is_file() or root.is_file():
+        from paper_results.bundle import open_bundle
+        if root.is_dir():
+            provenance = json.loads((root / "provenance.json").read_text())
+            args.skip_quality = args.skip_quality or not provenance["verification"]["quality_checked"]
+        with open_bundle(root) as raw:
+            if root.is_file():
+                args.skip_quality = args.skip_quality or json.loads((raw / "metadata.json").read_text())["arguments"].get("skip_quality", False)
+            report = validate_bundle(raw, args)
+    else:
+        report = validate_bundle(root, args)
     text = json.dumps(report, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

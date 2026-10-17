@@ -1,5 +1,68 @@
 --- a/src/ImMesh_mesh_reconstruction.cpp
 +++ b/src/ImMesh_mesh_reconstruction.cpp
+@@ -117,7 +117,7 @@
+ 
+     std::atomic< int >    voxel_idx( 0 );
+     
+-    std::mutex mtx_triangle_lock, mtx_single_thr;
++    std::mutex mtx_triangle_lock, mtx_point_owner;
+     typedef std::unordered_set< std::shared_ptr< RGB_Voxel > >::iterator set_voxel_it;
+     std::unordered_map< std::shared_ptr< RGB_Voxel >, Triangle_set >     removed_triangle_list;
+     std::unordered_map< std::shared_ptr< RGB_Voxel >, Triangle_set >     added_triangle_list;
+@@ -127,7 +127,6 @@
+     try
+     {
+         tbb::parallel_for_each( voxels_recent_visited.begin(), voxels_recent_visited.end(), [ & ]( const std::shared_ptr< RGB_Voxel > &voxel ) {
+-            // std::unique_lock<std::mutex> thr_lock(mtx_single_thr);
+             // printf_line;
+             if ( ( voxel->m_meshing_times >= 1 ) || ( voxel->m_new_added_pts_count < 0 ) )
+             {
+@@ -152,7 +151,10 @@
+             g_mutex_append_map.unlock();
+             // Voxel-wise mesh pull
+             pts_in_voxels = retrieve_neighbor_pts_kdtree( pts_in_voxels );
+-            pts_in_voxels = remove_outlier_pts( pts_in_voxels, voxel );
++            {
++                std::lock_guard<std::mutex> lock( mtx_point_owner );
++                pts_in_voxels = remove_outlier_pts( pts_in_voxels, voxel );
++            }
+ 
+             std::set< long > relative_point_indices;
+             for ( RGB_pt_ptr tri_ptr : pts_in_voxels )
+@@ -175,19 +177,23 @@
+             std::vector< long > add_triangle_idx = delaunay_triangulation( pts_in_voxels, voxel->m_long_axis, voxel->m_mid_axis,
+                                                                                voxel->m_short_axis, convex_hull_index, inner_pts_index );
+ 
+-            for ( auto p : inner_pts_index )
+-            {
+-                if ( voxel->if_pts_belong_to_this_voxel( g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ] ) )
++            {
++                // Neighboring voxel tasks share points and their owning shared_ptr.
++                std::lock_guard<std::mutex> lock( mtx_point_owner );
++                for ( auto p : inner_pts_index )
+                 {
+-                    g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_is_inner_pt = true;
++                    if ( voxel->if_pts_belong_to_this_voxel( g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ] ) )
++                    {
++                        g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_is_inner_pt = true;
++                        g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_parent_voxel = voxel;
++                    }
++                }
++
++                for ( auto p : convex_hull_index )
++                {
++                    g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_is_inner_pt = false;
+                     g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_parent_voxel = voxel;
+                 }
+-            }
+-
+-            for ( auto p : convex_hull_index )
+-            {
+-                g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_is_inner_pt = false;
+-                g_map_rgb_pts_mesh.m_rgb_pts_vec[ p ]->m_parent_voxel = voxel;
+             }
+             Triangle_set triangles_sets = g_triangles_manager.find_relative_triangulation_combination( relative_point_indices );
+             Triangle_set triangles_to_remove, triangles_to_add, existing_triangle;
 @@ -269,6 +269,8 @@
  
  

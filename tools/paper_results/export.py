@@ -36,8 +36,13 @@ def exporter_record() -> dict:
     root = Path(__file__).parents[2]
     def git(*args):
         return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    rendering = {}
+    for command in (["pdflatex", "--version"], ["pdftocairo", "-v"]):
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        rendering[command[0]] = (result.stdout or result.stderr).splitlines()[0]
     files = list((root / "tools/paper_results").rglob("*.py")) + list((root / "tools/paper_results/templates").glob("*.tex"))
     return {"repository_commit": git("rev-parse", "HEAD"), "working_tree_status": git("status", "--short"),
+            "rendering_tools": rendering,
             "analysis_and_template_hashes": {str(p.relative_to(root)): sha256(p) for p in sorted(files)}}
 
 

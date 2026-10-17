@@ -179,7 +179,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--require-clean", action="store_true")
     parser.add_argument("--keep-ablation-meshes", action="store_true")
-    parser.add_argument("--mesh-policy", choices=("all", "quality", "none"), help="Override mesh retention for paper exports.")
+    parser.add_argument("--mesh-policy", choices=("all", "quality", "paper", "none"), help="Override mesh retention for paper exports.")
     parser.add_argument("--max-triangle-dist", type=float, default=0.30, help="Shared continuity/edge limit in metres (paper reference: 0.30, sensitivity: 0.55).")
     parser.add_argument("--paper-output", action="store_true", help="Measure the paper's scopes without empty templates or auxiliary overlap passes.")
     parser.add_argument("--include-runtime-sequences", action="store_true", help="Also time KITTI 03/05/06/10 with the reference configuration.")
@@ -1294,7 +1294,10 @@ def main() -> int:
                 continue
             keep_mesh = variant == "reference_pre_scan_polyline" or args.keep_ablation_meshes
             if args.mesh_policy:
-                keep_mesh = args.mesh_policy == "all" or (args.mesh_policy == "quality" and spec["kind"] == "maicity")
+                is_paper_view = (spec["kind"], spec["sequence"]) in {("maicity", "01"), ("kitti", "07")}
+                keep_mesh = args.mesh_policy == "all" or (
+                    args.mesh_policy == "quality" and spec["kind"] == "maicity"
+                ) or (args.mesh_policy == "paper" and variant == "reference_pre_scan_polyline" and is_paper_view)
             row, summary, frames, stages, timeline, memory_snapshots = run_application(
                 args, spec, variant, "throughput", binaries["benchmark"], args.output,
                 keep_mesh=keep_mesh,

@@ -84,6 +84,8 @@ Results are saved in a new folder under `results/paper_protocol/`:
 - **`report.pdf`**: the tables and figures, arranged as in the paper.
 - `report.tex`: the LaTeX source of the report.
 - `data/` and `figures/`: the CSV data and quality-map images.
+- `meshes/`: the MaiCity 01 and KITTI 07 reconstructions used for the qualitative
+  views. External-method meshes are included when their campaign has been run.
 
 Timings will vary with your hardware. Quality scores may also differ slightly
 because the evaluator samples points from the mesh randomly.

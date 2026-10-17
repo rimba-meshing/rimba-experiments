@@ -1,16 +1,21 @@
 """The paper campaign and its short diagnostic mode."""
 from __future__ import annotations
 
+import csv
 import datetime as dt
 import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 
 from . import datasets, environment, external_results
 from ..paper_results import inputs
+
+QUALITATIVE_WORKLOADS = (("maicity", "01"), ("kitti", "07"))
+EXTERNAL_METHODS = ("vdbfusion", "puma", "slamesh", "immesh", "cad_mesher")
 
 
 def comparison_inputs(root: Path, raw: Path) -> None:
@@ -45,7 +50,7 @@ def protocol_command(root: Path, output: Path, staged: dict, runner: Path, frame
             "--require-clean", "--paper-output", "--include-runtime-sequences", "--include-sensitivity",
             "--output", str(output / ".work/raw"), "--kitti-dataset", str(staged["kitti"]),
             "--maicity-dataset", str(staged["maicity"]), "--kitti-frame-count", str(counts[0]), "--maicity-frame-count", str(counts[1]),
-            "--cmake", "cmake", "--build-jobs", "2", "--warmup-runs", "3", "--runs", "10", "--mesh-policy", "quality",
+            "--cmake", "cmake", "--build-jobs", "2", "--warmup-runs", "3", "--runs", "10", "--mesh-policy", "paper",
             "--quality-ground-truth", str(output / ".work/maicity_reference.ply"), "--quality-runner", str(runner)]
     if frame_count is not None:
         command += ["--runtime-frame-count", str(frame_count)]
@@ -56,6 +61,53 @@ def report_command(root: Path, output: Path, frame_count: int | None) -> list[st
     counts = (frame_count, frame_count) if frame_count is not None else (1101, 100)
     return [sys.executable, str(root / "tools/report_protocol.py"), str(output / ".work/raw"), "--output", str(output),
             "--expected-kitti-frames", str(counts[0]), "--expected-maicity-frames", str(counts[1])]
+
+
+def export_qualitative_meshes(raw: Path, output: Path, external: dict | None) -> None:
+    with (raw / "results.csv").open(newline="", encoding="utf-8") as stream:
+        results = list(csv.DictReader(stream))
+
+    destination = output / "meshes"
+    for dataset, sequence in QUALITATIVE_WORKLOADS:
+        matches = [row for row in results if row.get("dataset") == dataset
+                   and row.get("sequence") == sequence
+                   and row.get("variant") == "reference_pre_scan_polyline"
+                   and row.get("run_kind") == "throughput"]
+        if len(matches) != 1 or not matches[0].get("output_mesh"):
+            raise ValueError(f"Missing RIMBA qualitative mesh: {dataset} {sequence}")
+        source = Path(matches[0]["output_mesh"])
+        if not source.is_file():
+            raise ValueError(f"RIMBA qualitative mesh is missing: {source}")
+        target = destination / dataset / sequence / "rimba.ply"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+
+    if external is None:
+        return
+
+    copied = set()
+    for case in external["cases"]:
+        workload = case["workload"]
+        identity = (workload["dataset"], workload["sequence"])
+        method = case["method"]
+        if identity not in QUALITATIVE_WORKLOADS:
+            continue
+        if method not in EXTERNAL_METHODS:
+            raise ValueError(f"Unexpected external mesh method: {method}")
+        key = (*identity, method)
+        if key in copied:
+            raise ValueError(f"Duplicate external qualitative mesh: {key}")
+        source = Path(case["mesh_path"])
+        if not source.is_file():
+            raise ValueError(f"External qualitative mesh is missing: {source}")
+        target = destination / identity[0] / identity[1] / f"{method}.ply"
+        shutil.copyfile(source, target)
+        copied.add(key)
+
+    expected = {(dataset, sequence, method) for dataset, sequence in QUALITATIVE_WORKLOADS
+                for method in EXTERNAL_METHODS}
+    if copied != expected:
+        raise ValueError(f"External qualitative meshes are incomplete: {sorted(expected - copied)}")
 
 
 def destination(root: Path, output: Path | None, frame_count: int | None) -> Path:
@@ -101,4 +153,6 @@ def run(root: Path, output: Path | None = None, frame_count: int | None = None, 
     if external:
         external_results.supply(root, external, raw, runner)
     subprocess.run(report_command(root, output, frame_count), cwd=root, check=True)
+    export_qualitative_meshes(raw, output, external)
     print(f"Validated paper results: {output / 'report.pdf'}")
+    print(f"Qualitative meshes: {output / 'meshes'}")

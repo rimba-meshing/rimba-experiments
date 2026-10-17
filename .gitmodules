@@ -3,16 +3,16 @@
 	url = https://github.com/rimba-meshing/rimba.git
 [submodule "external/vdbfusion/source"]
 	path = external/vdbfusion/source
-	url = https://github.com/samuelss1996/vdbfusion.git
+	url = https://github.com/rimba-meshing/vdbfusion.git
 [submodule "external/puma/source"]
 	path = external/puma/source
-	url = https://github.com/samuelss1996/puma.git
+	url = https://github.com/rimba-meshing/puma.git
 [submodule "external/slamesh/source"]
 	path = external/slamesh/source
-	url = https://github.com/samuelss1996/SLAMesh.git
+	url = https://github.com/rimba-meshing/SLAMesh.git
 [submodule "external/immesh/source"]
 	path = external/immesh/source
-	url = https://github.com/samuelss1996/ImMesh.git
+	url = https://github.com/rimba-meshing/ImMesh.git
 [submodule "external/cad_mesher/source"]
 	path = external/cad_mesher/source
-	url = https://github.com/samuelss1996/CAD-Mesher.git
+	url = https://github.com/rimba-meshing/CAD-Mesher.git

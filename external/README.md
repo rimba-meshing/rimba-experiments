@@ -43,13 +43,13 @@ use the environment documented in the main README.
 
 Tested on an Ubuntu 24.04 host with Docker Engine 29.7.2.
 
-| Method | Image environment | Main dependencies |
-| --- | --- | --- |
-| VDBFusion | Ubuntu 22.04, Python 3.10 | NumPy 1.26.4, Open3D 0.19.0, VDBFusion 0.1.6 |
-| PUMA | Ubuntu 20.04, Python 3.8 | NumPy 1.22.3, Open3D 0.15.2, Embree 2.17.7 |
-| SLAMesh | Ubuntu 20.04, ROS Noetic | Ceres 2.1.0, PCL, LVR2, mesh_msgs |
-| ImMesh | Ubuntu 20.04, ROS Noetic | CGAL, PCL, OpenCV, Livox driver |
-| CAD-Mesher | Ubuntu 20.04, ROS Noetic | Ceres 1.14, PCL, LVR2, mesh_msgs |
+| Method | Upstream | Image environment | Main dependencies |
+| --- | --- | --- | --- |
+| VDBFusion | [PRBonn/vdbfusion](https://github.com/PRBonn/vdbfusion) | Ubuntu 22.04, Python 3.10 | NumPy 1.26.4, Open3D 0.19.0, VDBFusion 0.1.6 |
+| PUMA | [PRBonn/puma](https://github.com/PRBonn/puma) | Ubuntu 20.04, Python 3.8 | NumPy 1.22.3, Open3D 0.15.2, Embree 2.17.7 |
+| SLAMesh | [lab-sun/SLAMesh](https://github.com/lab-sun/SLAMesh) | Ubuntu 20.04, ROS Noetic | Ceres 2.1.0, PCL, LVR2, mesh_msgs |
+| ImMesh | [hku-mars/ImMesh](https://github.com/hku-mars/ImMesh) | Ubuntu 20.04, ROS Noetic | CGAL, PCL, OpenCV, Livox driver |
+| CAD-Mesher | [Yaepiii/CAD-Mesher](https://github.com/Yaepiii/CAD-Mesher) | Ubuntu 20.04, ROS Noetic | Ceres 1.14, PCL, LVR2, mesh_msgs |
 
 Recipes are in `docker/`, with pinned base images and dependency revisions.
 Method sources and patches are built into the images. Datasets are mounted

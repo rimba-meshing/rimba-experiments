@@ -19,7 +19,7 @@ def pointer(root, frame_count):
 def protocol(root):
     files = sorted(path for path in (root / "external").rglob("*") if path.is_file()
                    and not any(part == "source" or part.startswith(".") for part in path.relative_to(root / "external").parts)
-                   and path.suffix in {".py", ".patch", ".json", ".yml", ".yaml", ".txt", ".Dockerfile"})
+                   and path.suffix in {".py", ".patch", ".json", ".yml", ".yaml", ".txt", ".Dockerfile", ".cmake"})
     digest = hashlib.sha256()
     for path in files:
         digest.update(str(path.relative_to(root)).encode())

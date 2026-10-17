@@ -20,6 +20,8 @@ def recipe(root, method):
         files.update({"patches/" + p.name: p for p in sorted((root / "external/patches" / method).glob("*.patch"))})
     else:
         files["requirements.txt"] = root / "external" / method / "requirements.txt"
+    if method == "vdbfusion":
+        files["FindOpenVDB.cmake"] = docker / "FindOpenVDB.cmake"
     source = root / "external" / method / "source"
     record = {"schema": "rimba-external-image-v1", "method": method, "source_commit": git(source, "rev-parse", "HEAD"),
               "files": {name: sha256(path) for name, path in files.items()}}

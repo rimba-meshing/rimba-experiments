@@ -1,6 +1,14 @@
 --- a/src/voxel_mapping.cpp
 +++ b/src/voxel_mapping.cpp
-@@ -1695,8 +1695,17 @@
+@@ -39,6 +39,7 @@
+  POSSIBILITY OF SUCH DAMAGE.
+ */
+ #include "voxel_mapping.hpp"
++#include "tools/tools_logger.hpp"
+ double g_LiDAR_frame_start_time = 0;
+ 
+ V3D Lidar_T_wrt_IMU = V3D::Zero();
+@@ -1695,8 +1696,17 @@
      FILE *fp_kitti;
      // string kitti_log_dir = "/home/zivlin/temp/FAST-LIO-Voxelmap//Log/"
      //                        "kitti_log_voxelmap.txt";
@@ -14,12 +22,12 @@
 +    {
 +        ROS_FATAL( "Cannot open the KITTI trajectory log" );
 +        ros::shutdown();
-+        return;
++        return 1;
 +    }
  /*** variables definition ***/
  #ifndef USE_IKFOM
      VD( DIM_STATE ) solution;
-@@ -1753,13 +1762,13 @@
+@@ -1753,13 +1763,13 @@
  #endif
      /*** debug record ***/
      FILE * fp;

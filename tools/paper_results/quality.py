@@ -46,7 +46,7 @@ def sensitivity(source: Path, ref: dict) -> dict:
 
 def map_body(extent: tuple, panels: list[tuple[str, str]], clip: float) -> str:
     xmin, xmax, ymin, ymax = extent
-    lines = [r"\begin{tikzpicture}\begin{groupplot}[", r"group style={group size=2 by " + str(len(panels) // 2) + r",horizontal sep=1.05cm,vertical sep=1.15cm},",
+    lines = [r"\begin{tikzpicture}\begin{groupplot}[", r"group style={group size=2 by " + str(len(panels) // 2) + r",horizontal sep=1.35cm,vertical sep=1.8cm},",
              r"scale only axis,width=0.40\linewidth,height=0.27\linewidth,axis equal image,",
              f"xmin={xmin},xmax={xmax},ymin={ymin},ymax={ymax},",
              r"xlabel={$x$ (m)},ylabel={$y$ (m)},tick label style={font=\scriptsize},label style={font=\small},title style={font=\small}]"]

@@ -1,0 +1,118 @@
+diff --git a/src/voxel_mapping.cpp b/src/voxel_mapping.cpp
+--- a/src/voxel_mapping.cpp
++++ b/src/voxel_mapping.cpp
+@@ -1819,6 +1819,19 @@
+ #else
+         p_imu->Process2( m_Lidar_Measures, state, m_feats_undistort );
+
++        if ( m_external_pose_en )
++        {
++            if ( frame_num >= static_cast< int >( m_external_pose_positions.size() ) )
++            {
++                ROS_ERROR( "External pose sequence ended at frame %d", frame_num );
++                m_flg_exit = true;
++                break;
++            }
++            state.rot_end = m_external_pose_rotations[ frame_num ];
++            state.pos_end = m_external_pose_positions[ frame_num ];
++            state.vel_end.setZero();
++        }
++
+         // ANCHOR: Remove point that nearing 10 meter
+         if ( 0 )
+         {
+@@ -1954,7 +1967,13 @@
+         geoQuat.w = state_point.rot.coeffs()[ 3 ];
+ #else
+
+-        if ( m_lidar_en )
++        if ( m_lidar_en )
+         {
+             lio_state_estimation( state_propagat );
++            if ( m_external_pose_en )
++            {
++                state.rot_end = m_external_pose_rotations[ frame_num ];
++                state.pos_end = m_external_pose_positions[ frame_num ];
++                state.vel_end.setZero();
++            }
+         }
+diff --git a/src/voxel_mapping.hpp b/src/voxel_mapping.hpp
+--- a/src/voxel_mapping.hpp
++++ b/src/voxel_mapping.hpp
+@@ -192,6 +192,10 @@
+     std::vector< int > m_layer_init_size;
+
+     bool   m_lidar_pushed, m_imu_en, m_flg_reset, m_flg_exit = false;
++    bool   m_external_pose_en = false;
++    string m_external_pose_path;
++    vector< M3D > m_external_pose_rotations;
++    vector< V3D > m_external_pose_positions;
+     int    m_dense_map_en = 1;
+     int    m_img_en = 1, m_imu_int_frame = 3;
+     int    m_lidar_en = 1;
+@@ -402,6 +406,7 @@
+     void publish_path( const ros::Publisher pubPath );
+
+     void read_ros_parameters( ros::NodeHandle &nh );
++    void load_external_poses();
+
+     void transformLidar( const Eigen::Matrix3d rot, const Eigen::Vector3d t, const PointCloudXYZI::Ptr &input_cloud,
+                          pcl::PointCloud< pcl::PointXYZI >::Ptr &trans_cloud );
+diff --git a/src/voxel_mapping_common.cpp b/src/voxel_mapping_common.cpp
+--- a/src/voxel_mapping_common.cpp
++++ b/src/voxel_mapping_common.cpp
+@@ -39,6 +39,8 @@
+  POSSIBILITY OF SUCH DAMAGE.
+ */
+ #include "voxel_mapping.hpp"
++#include <sstream>
++#include <stdexcept>
+
+ void Voxel_mapping::kitti_log( FILE *fp )
+ {
+@@ -622,6 +624,34 @@
+     pubPath.publish( m_pub_path );
+ }
+
++void Voxel_mapping::load_external_poses()
++{
++    std::ifstream input( m_external_pose_path );
++    if ( !input )
++        throw std::runtime_error( "Cannot open external pose file: " + m_external_pose_path );
++
++    string line;
++    while ( std::getline( input, line ) )
++    {
++        if ( line.empty() )
++            continue;
++        std::istringstream stream( line );
++        double value[ 12 ];
++        for ( int i = 0; i < 12; ++i )
++        {
++            if ( !( stream >> value[ i ] ) )
++                throw std::runtime_error( "External pose file must contain 12 values per line: " + m_external_pose_path );
++        }
++        M3D rotation;
++        rotation << value[ 0 ], value[ 1 ], value[ 2 ], value[ 4 ], value[ 5 ], value[ 6 ], value[ 8 ], value[ 9 ], value[ 10 ];
++        m_external_pose_rotations.push_back( rotation );
++        m_external_pose_positions.emplace_back( value[ 3 ], value[ 7 ], value[ 11 ] );
++    }
++    if ( m_external_pose_positions.empty() )
++        throw std::runtime_error( "External pose file is empty: " + m_external_pose_path );
++    ROS_INFO( "Loaded %zu fixed external poses from %s", m_external_pose_positions.size(), m_external_pose_path.c_str() );
++}
++
+ void Voxel_mapping::read_ros_parameters( ros::NodeHandle &nh )
+ {
+     nh.param< int >( "dense_map_enable", m_dense_map_en, 1 );
+@@ -659,6 +689,10 @@
+     nh.param< vector< int > >( "voxel/layer_init_size", m_layer_init_size, vector< int >() );
+     nh.param< int >( "mapping/imu_int_frame", m_imu_int_frame, 3 );
+     nh.param< bool >( "mapping/imu_en", m_imu_en, false );
++    nh.param< bool >( "mapping/external_pose_en", m_external_pose_en, false );
++    nh.param< string >( "mapping/external_pose_path", m_external_pose_path, "" );
++    if ( m_external_pose_en )
++        load_external_poses();
+     nh.param< bool >( "voxel/voxel_map_en", m_use_new_map, false );
+     nh.param< bool >( "voxel/pub_plane_en", m_is_pub_plane_map, false );
+     nh.param< double >( "voxel/match_eigen_value", m_match_eigen_value, 0.0025 );

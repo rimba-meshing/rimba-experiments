@@ -1,0 +1,143 @@
+diff --git a/src/slamesher_node.cpp b/src/slamesher_node.cpp
+--- a/src/slamesher_node.cpp
++++ b/src/slamesher_node.cpp
+@@ -67,9 +67,40 @@
+     */
+
+ # include "slamesher_node.h"
++#include <sstream>
++#include <stdexcept>
+ Parameter param;//parameters
+ Log g_data;//global variables
+
++static std::vector<Transf> loadExternalPoses(const std::string &path){
++    std::ifstream input(path);
++    if(!input){
++        throw std::runtime_error("Can not open external pose file: " + path);
++    }
++    std::vector<Transf> poses;
++    std::string line;
++    while(std::getline(input, line)){
++        if(line.empty()) continue;
++        std::istringstream stream(line);
++        double value[12];
++        for(int i = 0; i < 12; ++i){
++            if(!(stream >> value[i])){
++                throw std::runtime_error("External pose file must contain 12 values per line: " + path);
++            }
++        }
++        Transf pose = Transf::Identity();
++        pose << value[0], value[1], value[2], value[3],
++                value[4], value[5], value[6], value[7],
++                value[8], value[9], value[10], value[11],
++                0, 0, 0, 1;
++        poses.push_back(pose);
++    }
++    if(poses.empty()){
++        throw std::runtime_error("External pose file is empty: " + path);
++    }
++    return poses;
++}
++
+ Log::Log(){
+     log_length =  param.max_steps;
+     num_cells_now = num_cells_glb = num_cells_new =
+@@ -323,8 +354,12 @@
+         return first_odom;
+     }
+     //three ways
+-    //1, use ground truth
+-    if(param.grt_available){
++    //1, use the fixed external pose sequence
++    if(param.external_pose_available){
++        transf_odom_now = param.external_poses.at(0);
++    }
++    //2, use ground truth for first-frame alignment
++    else if(param.grt_available){
+         bool first = true;
+         while(path_grt.poses.empty() && ros::ok()){
+             ros::spinOnce();//wait for first imu
+@@ -334,7 +369,7 @@
+         }
+         transf_odom_now = grt_first_transf;
+     }
+-    //2, use first odom
++    //3, use first odom
+     else if(param.odom_available){
+         if(param.read_offline_pcd){
+             transf_odom_now = state2quat2trans3(g_data.odom_offline[0]);
+@@ -350,7 +385,7 @@
+             // imu or odometry callback function will update transf_odom_now
+         }
+     }
+-    //3, give a manual T
++    //4, give a manual T
+     else{transf_odom_now = createTrans(param.correction_x, param.correction_y, param.correction_z,
+                                    param.correction_roll_degree, param.correction_pitch_degree,
+                                    param.correction_yaw_degree);
+@@ -495,6 +530,12 @@
+     std::cout<<"max_steps: "<<max_steps<<std::endl;
+     nh.param("slamesher/file_loc_report", file_loc_report, std::string("not_set"));
+     nh.param("slamesher/save_mesh_map", save_mesh_map, false);
++    nh.param("slamesher/external_pose_available", external_pose_available, false);
++    nh.param("slamesher/external_pose_path", external_pose_path, std::string(""));
++    if(external_pose_available){
++        external_poses = loadExternalPoses(external_pose_path);
++        ROS_INFO("Loaded %lu fixed external poses from %s", external_poses.size(), external_pose_path.c_str());
++    }
+
+     //<!--  register param  -->-
+     nh.param("slamesher/range_max",  range_max,  100.0);
+@@ -544,7 +585,18 @@
+ Transf SLAMesher::getOdom(){
+     //before scan registration, obtain initial guess of transformation from motion prior or odometry msg
+     Transf odom, dT, odom_now, odom_pre;
+-    if(param.odom_available){
++    if(param.external_pose_available){
++        if(param.external_poses.empty()){
++            return Transf::Identity();
++        }
++        if(g_data.step >= static_cast<int>(param.external_poses.size())){
++            return param.external_poses.back();
++        }
++        odom = param.external_poses[g_data.step];
++        g_data.recordPoseToPath(Odom, odom);
++        return odom;
++    }
++    else if(param.odom_available){
+         if(param.read_offline_pcd){
+             //use odometry from file
+             int step_offset = 0;
+@@ -851,7 +901,14 @@
+             break;
+         }
+         //register
+-        map_now.registerToMap(map_glb, Tguess, max_rg_time);
++        if(param.external_pose_available){
++            // The supplied trajectory is the pose used for mapping, so do not
++            // refine it with SLAMesh scan-to-map registration.
++            g_data.updatePose(Tguess);
++        }
++        else{
++            map_now.registerToMap(map_glb, Tguess, max_rg_time);
++        }
+         pubTf();
+         //map update
+         TicToc t_update;
+diff --git a/src/slamesher_node.h b/src/slamesher_node.h
+--- a/src/slamesher_node.h
++++ b/src/slamesher_node.h
+@@ -22,10 +22,12 @@
+     double eigen_1, eigen_2, eigen_3;//PCA
+
+     std::string file_loc_report, file_loc_dataset, seq;
++    std::string external_pose_path;
++    std::vector<Transf> external_poses;
+     bool three_dir;//features fixed
+     bool odom_available, read_offline_pcd, cross_overlap, grt_available, imu_feedback,
+             meshing_tsdf, full_cover, save_raw_point_clouds, point2mesh{true},
+-            residual_combination{true}, save_mesh_map;
++            residual_combination{true}, save_mesh_map, external_pose_available{false};
+     int visualisation_type;
+     int num_margin_old_cell;
+     double bias_acc_x, bias_acc_y;

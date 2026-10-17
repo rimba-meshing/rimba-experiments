@@ -7,6 +7,7 @@ and generate results, tables, and figures.
 
 - `rimba/`: RIMBA library submodule.
 - `reproduce.py`: experiment launcher.
+- `external/`: the five comparison methods and their runners.
 - `tools/`: evaluation, analysis, and rendering tools.
 - `results/`: generated tables, figures, and reports.
 
@@ -89,23 +90,17 @@ because the evaluator samples points from the mesh randomly.
 
 ### Comparisons with other methods
 
-Results from other methods and matched qualitative views can be added using
-the files below. The report marks missing comparisons.
+To include VDBFusion, PUMA, SLAMesh, ImMesh and CAD-Mesher, prepare their
+[environments](external/README.md) and run the external campaign first:
 
-<details>
-<summary>Adding comparison results and qualitative views</summary>
+```bash
+python3 reproduce_external.py
+python3 reproduce.py
+```
 
-Place the files in `comparisons/` before running `reproduce.py`:
-
-- `quality.csv`: columns `method`, `precision`, `recall`, `f1`, `tau_m`,
-  `voxel_size_m`, `sample_points`, and `source`. Scores use [0, 1]. Use a
-  0.10 m tolerance, 0.05 m voxel size, and 6,553,600 sampled mesh points.
-- `runtime.csv`: columns `dataset` (`kitti` or `maicity`), `sequence`,
-  `method`, `frames`, `time_ms_per_frame`, `hardware`, and `source`.
-- `qualitative.pdf`: matched views, with their source described in
-  `qualitative-source.txt`.
-
-</details>
+The report incorporates their reconstructed meshes and timings automatically.
+The qualitative figure uses the paper's reference captures, whose camera
+matrices were not saved.
 
 ## Related repositories
 

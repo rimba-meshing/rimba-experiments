@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "source_image_size": [
+    1920,
+    1080
+  ],
+  "generated_image_width": 960,
+  "methods": [
+    {
+      "id": "point_cloud",
+      "label": "Point cloud"
+    },
+    {
+      "id": "vdbfusion",
+      "label": "VDBFusion"
+    },
+    {
+      "id": "puma",
+      "label": "PUMA"
+    },
+    {
+      "id": "slamesh",
+      "label": "SLAMesh"
+    },
+    {
+      "id": "immesh",
+      "label": "ImMesh"
+    },
+    {
+      "id": "cad_mesher",
+      "label": "CAD-Mesher"
+    },
+    {
+      "id": "our_method",
+      "label": "RIMBA"
+    }
+  ],
+  "views": [
+    {
+      "id": "cones",
+      "dataset": "MaiCity",
+      "sequence": "01",
+      "title": "Cones and curb",
+      "boxes": [
+        {
+          "id": "a",
+          "x": 1414,
+          "y": 401,
+          "width": 446,
+          "height": 378
+        },
+        {
+          "id": "b",
+          "x": 607,
+          "y": 554,
+          "width": 788,
+          "height": 233
+        }
+      ]
+    },
+    {
+      "id": "mailbox",
+      "dataset": "MaiCity",
+      "sequence": "01",
+      "title": "Mailbox and curb",
+      "boxes": [
+        {
+          "id": "a",
+          "x": 863,
+          "y": 429,
+          "width": 174,
+          "height": 327
+        },
+        {
+          "id": "b",
+          "x": 496,
+          "y": 648,
+          "width": 380,
+          "height": 150
+        },
+        {
+          "id": "c",
+          "x": 665,
+          "y": 410,
+          "width": 94,
+          "height": 188
+        }
+      ]
+    },
+    {
+      "id": "parked",
+      "dataset": "KITTI",
+      "sequence": "07",
+      "title": "Parked vehicles",
+      "boxes": [
+        {
+          "id": "a",
+          "x": 363,
+          "y": 362,
+          "width": 1290,
+          "height": 232
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "manuscript_revision": "5d6ee6024bc6ea9f7dd67a31617199c4d002ec8c",
+    "capture_kind": "reference screenshots used in the paper; camera matrices were not saved"
+  },
+  "sha256": {
+    "cones/point_cloud.png": "4c39bd2a24de41b9d664645296cda79c3faba604200e3beec2ce2a7231c41e7e",
+    "cones/vdbfusion.png": "b84e88f2df75f2443747423f177baa1255ec3955ea4f053603c992e8ee15c53c",
+    "cones/puma.png": "a0055545d8f943adbd65e76a80423b80518eb12f63cc0194b257998cd43cf94a",
+    "cones/slamesh.png": "235aa7444598ca68d5c7cea737cee816afd3e91f61ba205eae019c435f4ae55f",
+    "cones/immesh.png": "e2bdcb92dc02bfcada6b14354cb972b04b23d8268d19e255d3f51f8d4c9f972f",
+    "cones/cad_mesher.png": "3520b294ffc111b3a6da105dabf71964f368d5e01bf540a163c27e6def644cbb",
+    "cones/our_method.png": "15552f8e97127b430b27d71683d10640b06cfa6fc4e648303420924b46d4d1fa",
+    "mailbox/point_cloud.png": "1d89bf441dbde0da7da402a46b487d3cd4ce493b8c6376e59665cf66bf072ad7",
+    "mailbox/vdbfusion.png": "e0a06638cf09488ebff14350f4f53488416578825dacb7fe54a544ee95e95d1b",
+    "mailbox/puma.png": "77ce0972dde46b3a773c1534000dc30958863a6dab88681e24bc56309dc83603",
+    "mailbox/slamesh.png": "ceb268d0507dd61c7eff3302897db07c43885a6d8abd98515de6660ff9059b80",
+    "mailbox/immesh.png": "97625dcb021bf7eb06dfa8d80810cc5e7af28b68740caca6fe5d1c85d14c9d43",
+    "mailbox/cad_mesher.png": "4ce4c03287b9fb73f066526e8b74f96b3207642fff449023c2074d93bc8f4b6c",
+    "mailbox/our_method.png": "c070dcf6db52bf4734ef020c2c426feb528bc1e42520bef9aacfa0dbb3c67010",
+    "parked/point_cloud.png": "6e76e5808a72c074d7a58ff6398463e4aa200e3c5ecf33511cf630812e74f3ed",
+    "parked/vdbfusion.png": "eeb35a6ffb98dece6386ab58c7b7556238ea0c6a5723b27added38393ba9a80d",
+    "parked/puma.png": "5ef45b8e5c235b37f8c79d74d83afb87ae630f2fef45ceaf8dd5da5139cf4ae0",
+    "parked/slamesh.png": "7010937d219617197691c56cb61d2be5a179923226c6b35dba1e48e2ef48ed82",
+    "parked/immesh.png": "5d5c841e6bcb38c74bb718ebe6c24ebe05bd79ea5814859f4a2e7097ad5372d1",
+    "parked/cad_mesher.png": "58c37c7f57de509229f78cdbe982694d139aa0a1ec5eefaa67064a8928eaa78e",
+    "parked/our_method.png": "087458ee7c8247149dec0ab5e8c5b4a4f46e5faaebf855e1851fb6ba91a83ae3"
+  }
+}

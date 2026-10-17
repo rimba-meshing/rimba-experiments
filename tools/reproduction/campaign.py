@@ -9,7 +9,7 @@ import shlex
 import subprocess
 import sys
 
-from . import datasets, environment
+from . import datasets, environment, external_results
 from ..paper_results import inputs
 
 
@@ -84,6 +84,9 @@ def run(root: Path, output: Path | None = None, frame_count: int | None = None, 
     output = destination(root, output, frame_count)
     environment_record = environment.preflight(root)
     selected = datasets.sources(root, frame_count)
+    external = external_results.discover(root, selected, frame_count, dry_run)
+    if external and any((root / "comparisons" / (kind + ".csv")).is_file() for kind in ("quality", "runtime")):
+        raise ValueError("Remove legacy comparisons/quality.csv and runtime.csv before using the automatic external campaign")
     runner = environment.evaluator(root, dry_run)
     if dry_run:
         preview(root, output, selected, runner, frame_count)
@@ -95,5 +98,7 @@ def run(root: Path, output: Path | None = None, frame_count: int | None = None, 
     staged = datasets.stage(selected, output / ".work")
     prepare_reference(staged["maicity"], output / ".work")
     subprocess.run(protocol_command(root, output, staged, runner, frame_count), cwd=root, check=True)
+    if external:
+        external_results.supply(root, external, raw, runner)
     subprocess.run(report_command(root, output, frame_count), cwd=root, check=True)
     print(f"Validated paper results: {output / 'report.pdf'}")

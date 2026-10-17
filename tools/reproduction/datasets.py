@@ -32,6 +32,8 @@ def sources(root: Path, diagnostic_frame_count: int | None = None) -> dict:
                 if not scan.is_file() or scan.stat().st_size == 0 or scan.stat().st_size % 16:
                     raise ValueError(f"Missing or invalid float32 XYZI scan: {scan}")
             selected[sequence] = {"velodyne": directory / "velodyne", "poses.txt": poses, "calib.txt": directory / "calib.txt"}
+            if (directory / "times.txt").is_file():
+                selected[sequence]["times.txt"] = directory / "times.txt"
         output[kind] = selected
     return output
 

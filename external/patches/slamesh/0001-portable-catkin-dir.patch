@@ -1,0 +1,17 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 53d03c7..0f8207d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,7 +3,11 @@ project(slamesh)
+ 
+ SET(CMAKE_CXX_FLAGS "-std=c++14 -Wno-deprecated-declarations -Wno-dev")
+ set(CMAKE_BUILD_TYPE "Release")
+-set(catkin_DIR /opt/ros/kinetic/share/catkin/cmake)
++if(NOT DEFINED catkin_DIR)
++    if(DEFINED ENV{ROS_DISTRO} AND EXISTS "/opt/ros/$ENV{ROS_DISTRO}/share/catkin/cmake")
++        set(catkin_DIR "/opt/ros/$ENV{ROS_DISTRO}/share/catkin/cmake")
++    endif()
++endif()
+ 
+ #ros
+ #add_compile_definitions(VOXBLOX)

@@ -1,6 +1,8 @@
 """A restrained LaTeX report following the paper's Evaluation sections."""
 from __future__ import annotations
 
+import json
+
 import subprocess
 from pathlib import Path
 
@@ -62,6 +64,12 @@ def header(publication) -> str:
         f"% Repetitions: {arguments['warmup_runs']} warmups, {arguments['runs']} measured",
         "% GPU: " + next(iter(publication.metadata.get("gpu_before", [])), "not recorded"),
     ])
+    external = publication.source / "external_campaign.json"
+    if external.is_file():
+        campaign = json.loads(external.read_text())
+        measurement += "\n% External experiments: " + campaign["experiments_commit"]
+        measurement += "\n% External adapters SHA-256: " + campaign["protocol_sha256"]
+        measurement += "".join("\n% External " + method + ": " + revision for method, revision in campaign["sources"].items())
     reference = publication.metadata.get("reference_preparation")
     if reference:
         measurement += (f"\n% Reference: MaiCity {reference['sequence']}, {reference['frames']} frames, {reference['vertices']} vertices"

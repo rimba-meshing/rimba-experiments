@@ -1,0 +1,111 @@
+--- src/ImMesh_node.cpp	2026-04-24 00:00:00.000000000 +0000
++++ src/ImMesh_node.cpp	2026-04-24 00:00:00.000000000 +0000
+@@ -215,18 +215,29 @@
+     ros::init( argc, argv, "laserMapping" );
+     voxel_mapping.init_ros_node();
+ 
+-    GLFWwindow *window = g_gl_camera.init_openGL_and_ImGUI( "ImMesh: An Immediate LiDAR Localization and Meshing Framework", 1, voxel_mapping.m_GUI_font_size );
+-    if ( !gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) )
++    GLFWwindow *window = nullptr;
++    Common_tools::Point_cloud_shader  g_pt_shader;
++    
++    // Only initialize OpenGL/GLFW/ImGUI if drawing is enabled
++    if (voxel_mapping.m_if_draw_mesh)
+     {
+-        std::cout << "Failed to initialize GLAD" << std::endl;
+-        return -1;
++        window = g_gl_camera.init_openGL_and_ImGUI( "ImMesh: An Immediate LiDAR Localization and Meshing Framework", 1, voxel_mapping.m_GUI_font_size );
++        if ( !gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) )
++        {
++            std::cout << "Failed to initialize GLAD" << std::endl;
++            return -1;
++        }
++        init_openGL_shader();
++        if ( window == nullptr )
++        {
++            cout << "Window == nullptr" << endl;
++            return 0;
++        }
++        cout << ANSI_COLOR_GREEN_BOLD << "GUI mode enabled" << ANSI_COLOR_RESET << endl;
+     }
+-    Common_tools::Point_cloud_shader  g_pt_shader;
+-    init_openGL_shader();
+-    if ( window == nullptr )
++    else
+     {
+-        cout << "Window == nullptr" << endl;
+-        return 0;
++        cout << ANSI_COLOR_YELLOW_BOLD << "Headless mode: GUI disabled, running without display" << ANSI_COLOR_RESET << endl;
+     }
+ 
+     
+@@ -280,9 +291,6 @@
+     g_flag_pause = false;
+ 
+     std::string gl_camera_file_name = Common_tools::get_home_folder().append( "/ImMeshing.gl_camera" );
+-    g_gl_camera.load_camera( gl_camera_file_name );
+-    g_gl_camera.m_gl_cam.m_camera_z_far = 1500;
+-    g_gl_camera.m_gl_cam.m_camera_z_near = 0.1;
+     
+     // Rasterization configuration
+     Cam_view m_depth_view_camera;
+@@ -295,6 +303,17 @@
+     m_depth_view_camera.m_if_draw_depth_pts = true;
+     vec_3 ext_rot_angle = vec_3( 0, 0, 0 );
+ 
++    if (voxel_mapping.m_if_draw_mesh)
++    {
++        // GUI mode configuration
++        g_gl_camera.load_camera( gl_camera_file_name );
++        g_gl_camera.m_gl_cam.m_camera_z_far = 1500;
++        g_gl_camera.m_gl_cam.m_camera_z_near = 0.1;
++    }
++
++    // Main loop - GUI mode
++    if (voxel_mapping.m_if_draw_mesh && window != nullptr)
++    {
+     while ( !glfwWindowShouldClose( window ) )
+     {
+         g_gl_camera.draw_frame_start();
+@@ -523,14 +542,39 @@
+         g_gl_camera.set_gl_camera_pose_matrix();
+         g_gl_camera.draw_frame_finish();
+     }
+-
+-    // Cleanup
++    
++    // Cleanup GUI
+     ImGui_ImplOpenGL3_Shutdown();
+     ImGui_ImplGlfw_Shutdown();
+     ImGui::DestroyContext();
+ 
+     glfwDestroyWindow( window );
+     glfwTerminate();
++    }
++    else
++    {
++        // Headless mode - no GUI, just ROS processing
++        cout << ANSI_COLOR_CYAN_BOLD << "Running in headless mode. Press Ctrl+C to stop and save mesh." << ANSI_COLOR_RESET << endl;
++        
++        // Keep ROS spinning and processing data
++        while (ros::ok())
++        {
++            ros::spinOnce();
++            std::this_thread::sleep_for(std::chrono::milliseconds(100));
++        }
++        
++        cout << ANSI_COLOR_YELLOW_BOLD << "Shutting down, saving mesh..." << ANSI_COLOR_RESET << endl;
++    }
++    
++    // Save mesh on exit (works for both GUI and headless modes)
++    if (g_if_automatic_save_mesh || !voxel_mapping.m_if_draw_mesh)
++    {
++        g_flag_pause = true;
++        Common_tools::create_dir( data_path_file );
++        cout << ANSI_COLOR_GREEN_BOLD << "Saving mesh to: " << data_path_file << "/rec_mesh.ply" << ANSI_COLOR_RESET << endl;
++        save_to_ply_file( std::string( data_path_file ).append( "/rec_mesh.ply" ), g_ply_smooth_factor, g_ply_smooth_k );
++        cout << ANSI_COLOR_GREEN_BOLD << "Mesh saved successfully!" << ANSI_COLOR_RESET << endl;
++    }
+ 
+     return 0;
+ }

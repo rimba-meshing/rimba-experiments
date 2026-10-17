@@ -1,0 +1,28 @@
+--- a/src/tools/tools_logger.hpp
++++ b/src/tools/tools_logger.hpp
+@@ -494,6 +494,12 @@
+ 
+ inline String get_home_folder()
+ {
++    const char *output_root = getenv("RIMBA_IMMESH_OUTPUT_ROOT");
++    if (output_root && *output_root)
++    {
++        String directory = String(output_root) + PATH_SEPARATOR;
++        return ensureUnifySlash(directory);
++    }
+ #ifdef _MSC_VER
+     TCHAR homedir[ MAX_PATH ];
+     if ( SHGetSpecialFolderPath( 0, homedir, CSIDL_PROFILE, TRUE ) != TRUE )
+@@ -962,6 +968,12 @@
+ 
+ inline String get_home_folder()
+ {
++    const char *output_root = getenv("RIMBA_IMMESH_OUTPUT_ROOT");
++    if (output_root && *output_root)
++    {
++        String directory = String(output_root) + PATH_SEPARATOR;
++        return ensureUnifySlash(directory);
++    }
+ #ifdef _MSC_VER
+     TCHAR homedir[ MAX_PATH ];
+     if ( SHGetSpecialFolderPath( 0, homedir, CSIDL_PROFILE, TRUE ) != TRUE )

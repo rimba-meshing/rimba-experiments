@@ -1,4 +1,4 @@
-"""Optional, explicit inputs for comparisons and views outside the RIMBA run."""
+"""Comparison measurements and matched views supplied to the report."""
 from __future__ import annotations
 
 import json
@@ -76,6 +76,9 @@ def external_rows(inputs: dict, kind: str) -> list[dict]:
                       "frames": int(row["frames"]), "time_ms_per_frame": value,
                       "ci95_half_width_ms_per_frame": "", "source": row["source"], "hardware": row["hardware"]}
             identity = (record["dataset"], record["sequence"], record["method"])
+        for key in ("native_frame_count", "native_trace_complete", "timing_scope", "experiments_commit", "mesh_sha256", "reference_sha256", "evaluator_commit"):
+            if key in row:
+                record[key] = row[key]
         if identity in identities:
             raise ValueError(f"Duplicate external measurement: {identity}")
         identities.add(identity)
@@ -86,7 +89,8 @@ def external_rows(inputs: dict, kind: str) -> list[dict]:
 def qualitative(publication, inputs: dict) -> None:
     source = inputs.get("qualitative_pdf")
     if source is None:
-        publication.item("figure_qualitative", "requires_input", "Matched qualitative views were not supplied.")
+        from .qualitative import compose
+        compose(publication)
         return
     publication.item("figure_qualitative", "supplied", "Provided matched captures. Source: " + source["source"])
     pdf = publication.path("figure_qualitative", "pdf")

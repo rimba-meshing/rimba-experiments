@@ -9,8 +9,8 @@ import sys
 from tools.reproduction.campaign import run
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+def parse_args(description: str = __doc__) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=description, allow_abbrev=False)
     parser.add_argument("--diagnostic-frame-count", type=int, metavar="N", help="Use N frames per reconstructed sequence for a short diagnostic run.")
     parser.add_argument("--output", type=Path, metavar="PATH", help="Save results in a new directory at PATH.")
     parser.add_argument("--dry-run", action="store_true", help="Check prerequisites and print the planned commands without running experiments.")
@@ -24,6 +24,6 @@ if __name__ == "__main__":
     try:
         args = parse_args()
         run(Path(__file__).resolve().parent, args.output, args.diagnostic_frame_count, args.dry_run)
-    except (OSError, ValueError, subprocess.CalledProcessError, importlib.metadata.PackageNotFoundError) as error:
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError, importlib.metadata.PackageNotFoundError) as error:
         print(f"reproduce.py: {error}", file=sys.stderr)
         raise SystemExit(1)

@@ -73,79 +73,39 @@ Alternatively, put the datasets or symlinks at `datasets/kitti` and
 python3 reproduce.py
 ```
 
-No arguments are required or accepted. The script:
+The script builds RIMBA and runs the experiments. It generates the MaiCity
+reference cloud automatically and downloads the
+[TanksAndTemples](https://github.com/RuanJY/TanksAndTemples) evaluator on the
+first run.
 
-1. Checks the dependencies and datasets.
-2. Downloads [TanksAndTemples](https://github.com/RuanJY/TanksAndTemples)
-   from `master` on first use and reuses the clean cached checkout.
-3. Accumulates MaiCity `02` using its poses and calibration to generate
-   the reference PLY. No prebuilt global point cloud is required.
-4. Builds RIMBA and runs the runtime, memory, scheduling, and quality
-   experiments, including the **0.30 m and 0.55 m** reconstructions.
-5. Validates the measurements and generates the tables, plots, and four
-   precision/recall map panels in a LaTeX/PDF report.
+Results are saved in a new folder under `results/paper_protocol/`:
 
-Results are written to `results/paper_protocol/full_<timestamp>/`:
+- **`report.pdf`**: the tables and figures, arranged as in the paper.
+- `report.tex`: the LaTeX source of the report.
+- `data/` and `figures/`: the CSV data and quality-map images.
 
-- `report.pdf`: tables and figures grouped by the paper's Evaluation sections.
-- `report.tex`: editable LaTeX source, with measured revisions and the
-  generated reference checksum recorded in comments.
-- `data/`: CSV data used in the tables and plots.
-- `figures/`: quality-map images and any supplied matched views.
+Timings will vary with your hardware. Quality scores may also differ slightly
+because the evaluator samples points from the mesh randomly.
 
-Temporary meshes, the reference PLY, logs, and metadata are removed after
-successful export. A failed run retains its temporary files under `.work/`
-for diagnosis. The evaluator stays in `.cache/TanksAndTemples`; the first
-run requires internet access.
+### Comparisons with other methods
 
-### Measurement protocol
-
-- Runtime comparison: all five KITTI sequences and MaiCity `01`.
-- Scheduling ablations, memory profiles, and stage timings: KITTI `07`
-  and MaiCity `01`.
-- Throughput: 3 warmups and 10 measured repetitions per configuration.
-- The 0.55 m sensitivity pass uses the same reference scheduling policy,
-  frame interval, reference cloud, and quality evaluator as the 0.30 m run.
-  Only the shared continuity/triangle-edge threshold changes; stitching
-  and hole-fill thresholds retain their defaults. This extra pass measures
-  geometric quality, not comparative runtime.
-- Quality: 0.10 m tolerance, 0.05 m voxel size, and 6,553,600 sampled mesh
-  points, evaluated directly in global coordinates without registration.
-- Meshing times exclude dataset loading and PLY writing. Memory and stage
-  profiling are measured separately from throughput.
-- Runtime and memory depend on hardware and load. Quality scores can vary
-  slightly because the evaluator samples mesh points randomly.
-
-### Comparisons and matched views
-
-The script generates the RIMBA measurements and quantitative figures.
-Comparisons with other methods require their own runs. If available, these
-files are included automatically:
-
-- `comparisons/quality.csv`
-- `comparisons/runtime.csv`
-- `comparisons/qualitative.pdf`, with its source described in
-  `comparisons/qualitative-source.txt`
-
-The report identifies missing comparisons or matched views explicitly.
-Historical measurements are not substituted for new runs.
+Results from other methods and matched qualitative views can be added using
+the files below. The report marks missing comparisons.
 
 <details>
-<summary>Comparison CSV columns</summary>
+<summary>Adding comparison results and qualitative views</summary>
 
-Quality columns: `method`, `precision`, `recall`, `f1`, `tau_m`,
-`voxel_size_m`, `sample_points`, and `source`. Scores use [0, 1] and the
-quality protocol above.
+Place the files in `comparisons/` before running `reproduce.py`:
 
-Runtime columns: `dataset` (`kitti` or `maicity`), `sequence`, `method`,
-`frames`, `time_ms_per_frame`, `hardware`, and `source`.
+- `quality.csv`: columns `method`, `precision`, `recall`, `f1`, `tau_m`,
+  `voxel_size_m`, `sample_points`, and `source`. Scores use [0, 1]. Use a
+  0.10 m tolerance, 0.05 m voxel size, and 6,553,600 sampled mesh points.
+- `runtime.csv`: columns `dataset` (`kitti` or `maicity`), `sequence`,
+  `method`, `frames`, `time_ms_per_frame`, `hardware`, and `source`.
+- `qualitative.pdf`: matched views, with their source described in
+  `qualitative-source.txt`.
 
 </details>
-
-The individual tools in `tools/` provide `--help` for custom diagnostics,
-raw-data retention, re-exporting previous measurements, and additional method
-illustrations. For example, `tools/report_protocol.py` can export an existing
-measurement directory and retain its raw evidence with `--keep-raw`.
 
 ## Related repositories
 

@@ -3,10 +3,13 @@ ENV DEBIAN_FRONTEND=noninteractive PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/m
 RUN apt-get update && apt-get install -y --no-install-recommends     build-essential ca-certificates cmake git python3 python3-dev python3-pip     libeigen3-dev libopenvdb-dev pybind11-dev libegl1 libgl1 libgomp1     && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /opt/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /opt/requirements.txt
-RUN apt-get update && apt-get install -y --no-install-recommends libboost-iostreams-dev libblosc-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libboost-iostreams-dev libblosc-dev \
+    && cd /tmp && apt-get download libtbb2-dev=2020.3-1ubuntu3 \
+    && dpkg-deb --extract libtbb2-dev_*.deb /opt/tbb2020 \
+    && rm -f libtbb2-dev_*.deb && rm -rf /var/lib/apt/lists/*
 COPY source /opt/source
 COPY FindOpenVDB.cmake /opt/cmake/FindOpenVDB.cmake
-ENV CMAKE_BUILD_PARALLEL_LEVEL=2 CMAKE_ARGS=-DCMAKE_MODULE_PATH=/opt/cmake
+ENV CMAKE_BUILD_PARALLEL_LEVEL=2 CMAKE_ARGS="-DCMAKE_MODULE_PATH=/opt/cmake -DTBB_ROOT=/opt/tbb2020/usr"
 RUN python3 -m pip install -v --no-cache-dir --no-build-isolation --no-deps /opt/source
 COPY inventory.py /opt/inventory.py
 COPY build-input.json /opt/build-input.json

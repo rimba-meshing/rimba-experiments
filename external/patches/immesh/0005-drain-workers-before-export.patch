@@ -104,3 +104,66 @@
      // Save mesh on exit (works for both GUI and headless modes)
      if (g_if_automatic_save_mesh || !voxel_mapping.m_if_draw_mesh)
      {
+--- a/src/shader/tools_my_point_shader.h
++++ b/src/shader/tools_my_point_shader.h
+@@ -53,12 +53,15 @@
+     }
+     ~Point_cloud_shader()
+     {
++        // No OpenGL function pointers are loaded during headless execution.
++        if ( !glDeleteVertexArrays || !glDeleteBuffers )
++            return;
+         glDeleteVertexArrays( 1, &m_VAO );
+         glDeleteBuffers( 1, &m_VBO );
+     }
+     std::shared_ptr< Shader >    m_pt_shader=nullptr, m_pt_shader_single_color=nullptr;
+     std::vector< Point_element > m_pts_vector;
+-    unsigned int                 m_VBO, m_VAO;
++    unsigned int                 m_VBO = 0, m_VAO = 0;
+     bool                         m_if_set_pt_buffer = false;
+     unsigned char                m_pt_stencil_id = 0xF0;
+     int                          m_pts_size = 10;
+--- a/src/shader/tools_my_camera_pose_shader.h
++++ b/src/shader/tools_my_camera_pose_shader.h
+@@ -51,6 +51,9 @@
+     }
+     ~Camera_pose_shader()
+     {
++        // No OpenGL function pointers are loaded during headless execution.
++        if ( !glDeleteVertexArrays || !glDeleteBuffers )
++            return;
+         glDeleteVertexArrays( 1, &m_frame_vao );
+         glDeleteBuffers( 1, &m_frame_vbo );
+         glDeleteVertexArrays( 1, &m_image_vao );
+@@ -58,8 +61,8 @@
+     }
+     std::shared_ptr< Shader >    m_pt_shader, m_image_shader;
+     std::vector< Point_element > m_pts_vector;
+-    unsigned int                 m_frame_vbo, m_frame_vao;
+-    unsigned int                 m_image_vbo[2], m_image_vao;
++    unsigned int                 m_frame_vbo = 0, m_frame_vao = 0;
++    unsigned int                 m_image_vbo[2] = {}, m_image_vao = 0;
+     bool                         m_if_set_pt_buffer = false;
+     unsigned char                pt_stencil_id = 0xF0;
+     int                          m_pts_size = 20;
+--- a/src/shader/tools_my_texture_triangle_shader.h
++++ b/src/shader/tools_my_texture_triangle_shader.h
+@@ -54,6 +54,9 @@
+     }
+     ~Triangle_facet_shader()
+     {
++        // No OpenGL function pointers are loaded during headless execution.
++        if ( !glDeleteVertexArrays || !glDeleteBuffers )
++            return;
+         glDeleteVertexArrays( 1, &m_vao );
+         glDeleteBuffers( 3, m_vbo );
+     }
+@@ -62,7 +65,7 @@
+     std::vector< vec_3f >     m_pts_normal_vector;
+     std::vector< float >      m_pts_color_vector;
+     bool                      m_if_draw_face = true;
+-    unsigned int              m_vbo[ 3 ], m_vao;
++    unsigned int              m_vbo[ 3 ] = {}, m_vao = 0;
+     unsigned char             m_pt_stencil_id = 0xF0;
+     int                       m_line_width = 1;
+     double                    m_pts_alpha = 1;

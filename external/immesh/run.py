@@ -5,10 +5,24 @@ import time
 
 from external.common import timing
 from external.common.case import finish, load_case
-from external.common.data import lidar_poses
+from external.common.data import lidar_poses, timestamps
 from external.common.process import execute
 from external.common.ros import Session, stop
 from external.common.workspace import build, built_environment
+
+
+def replay(case, ros, node):
+    player = ros.start(["rosbag", "play", "--wait-for-subscribers", str(case.output / "input.bag")], "replay")
+    stamps = timestamps(case.workload)
+    deadline = time.monotonic() + max(120, 2 * (stamps[-1] - stamps[0]) + 60)
+    while player.poll() is None:
+        if node.poll() is not None:
+            raise RuntimeError("ImMesh stopped during replay; see node.log")
+        if time.monotonic() >= deadline:
+            raise RuntimeError("ImMesh replay timed out; see replay.log and node.log")
+        time.sleep(0.1)
+    if player.returncode != 0:
+        raise RuntimeError("ImMesh replay failed; see replay.log")
 
 
 def wait_idle(case, node):
@@ -45,7 +59,7 @@ def run(case):
             "/mapping/external_pose_en": True, "/mapping/external_pose_path": poses})
         node = ros.start(["rosrun", "ImMesh", "ImMesh_mapping"], "node")
         ros.wait_node("/laserMapping", node)
-        execute(["rosbag", "play", str(case.output / "input.bag")], case.output / "replay.log", env=ros.environment)
+        replay(case, ros, node)
         wait_idle(case, node)
         stop(node)
         if node.returncode not in (0, -2):

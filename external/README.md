@@ -112,19 +112,4 @@ before reuse. Rebuild a changed environment in a new checkout, or remove its
 cached workspace before rebuilding.
 
 The qualitative panel is composed from the reference captures in
-[`assets/qualitative`](../assets/qualitative/README.md). Its original camera
-matrices were not saved, so it is not re-rendered from new meshes.
-
-## Adaptations and licenses
-
-- VDBFusion: fixed-pose integration and final mesh extraction.
-- PUMA: fixed-pose incremental mapping and its existing timing CSV support.
-- SLAMesh: portable catkin lookup and sequence-pose mapping patches.
-- ImMesh: headless export, sequence poses and a per-run output directory.
-  MaiCity quality uses the original pose-index correction derived from the
-  first two LiDAR poses.
-- CAD-Mesher: the pinned fork's per-scan acknowledgement replay.
-
-Patches are applied to build copies. Source submodules remain unchanged.
-Each external project retains its own license and citation instructions;
-the repository's MIT license covers the accompanying reproduction tools.
+[`assets/qualitative`](../assets/qualitative/README.md).

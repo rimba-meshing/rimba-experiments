@@ -4,8 +4,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends     build-essen
 COPY requirements.txt /opt/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /opt/requirements.txt
 COPY source /opt/source
-ENV CMAKE_BUILD_PARALLEL_LEVEL=2
-RUN python3 -m pip install --no-cache-dir --no-build-isolation --no-deps /opt/source
+ENV CMAKE_BUILD_PARALLEL_LEVEL=2 CMAKE_ARGS=-DCMAKE_MODULE_PATH=/usr/lib/x86_64-linux-gnu/cmake/OpenVDB
+RUN python3 -m pip install -v --no-cache-dir --no-build-isolation --no-deps /opt/source
 COPY inventory.py /opt/inventory.py
 COPY build-input.json /opt/build-input.json
 RUN python3 /opt/inventory.py > /opt/environment.json

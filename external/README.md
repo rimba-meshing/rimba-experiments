@@ -7,13 +7,18 @@ runners, configurations and patches adapt those versions to the shared datasets.
 
 ## Prepare the environments
 
+The versions below come from our retained external-method environments.
+Each method's operating system belongs to its execution environment and can
+differ from the host system and from the RIMBA environment.
+
 Use Python **3.10 or newer** for the campaign launcher. Each method uses its own
 environment. The root `requirements.txt` remains the environment for RIMBA,
 evaluation and reporting.
 
 ### VDBFusion
 
-- Python **3.10**, NumPy **1.26.4**, Open3D **0.19.0**.
+- Native Python environment: Python **3.10.19**, NumPy **1.26.4**,
+  Open3D **0.19.0**, VDBFusion **0.1.6**.
 - A C++ compiler, Make, CMake **3.x**, and the Open3D runtime libraries listed
   in the main README. VDBFusion downloads its C++ build dependencies.
 
@@ -27,11 +32,12 @@ external/vdbfusion/.venv/bin/python -m pip install --no-build-isolation --no-dep
 
 ### PUMA
 
-- Ubuntu **20.04**, Python **3.8**, NumPy **1.24.4**, Open3D **0.15.2**.
-- A C++ compiler with OpenMP and the build dependencies described in
+- Ubuntu **20.04.4** execution environment, GCC **9.4.0** with OpenMP.
+- Python **3.8.10**, NumPy **1.22.3**, Open3D **0.15.2**, PUMA **0.1**.
+- Embree **2.17.7** and `pyembree` **0.1.6**, as described in
   [PUMA's installation guide](puma/source/INSTALL.md).
-- Embree **2.17.7** and its `pyembree` **0.1.6** bindings if required by the
-  installed PUMA components. Embree 3 is not interchangeable with this version.
+
+The Python requirements use the versions installed in our retained environment.
 
 ```bash
 python3.8 -m venv external/puma/.venv
@@ -44,15 +50,19 @@ and compensates PUMA's fixed KITTI pose conversion for MaiCity.
 
 ### SLAMesh, ImMesh and CAD-Mesher
 
-Prepare ROS **Noetic** environments on Ubuntu **20.04**, with catkin, GCC/G++,
-Make, `patch` and CMake **3.x**. Use the ROS Python **3.8** interpreter with
-NumPy, `rospy`, `tf`, `tf2_ros`, `sensor_msgs` and `nav_msgs`.
+Our retained ROS environments use:
 
-| Method | Additional dependencies | Source instructions |
+- Ubuntu **20.04.6** and ROS **Noetic**.
+- Python **3.8.10** and NumPy **1.17.4**.
+- GCC **9.4.0**, CMake **3.16.3**, and catkin **0.8.12**.
+- PCL **1.10.0**, Eigen **3.3.7**, and OpenCV **4.2.0**.
+- Make, `patch`, `rospy`, `tf`, `tf2_ros`, `sensor_msgs`, and `nav_msgs`.
+
+| Method | Additional dependencies in our environment | Source instructions |
 | --- | --- | --- |
-| SLAMesh | Ceres **2.1.0**, PCL, Eigen, Boost, LVR2 **2.x**, `mesh_msgs`, `mesh_msgs_conversions` | [SLAMesh](slamesh/source/README.md#2-build) |
-| ImMesh | PCL, Eigen, OpenCV, CGAL, TBB, GLEW, GLFW, GLM, OpenGL/GLU, `cv_bridge`, `eigen_conversions`, `message_filters`, `rosbag`, Livox driver | [ImMesh](immesh/source/README.md) |
-| CAD-Mesher | Ceres **1.14** (Ubuntu 20.04), PCL, Eigen, OpenCV, Boost, LVR2 **2.x**, `mesh_msgs`, `mesh_msgs_conversions` | [CAD-Mesher](cad_mesher/source/CAD_Mesher/README.md#2-build) |
+| SLAMesh | Ceres **2.1.0**, Boost, LVR2 ROS package **20.11.3**, `mesh_msgs` and `mesh_msgs_conversions` **1.1.0** | [SLAMesh](slamesh/source/README.md#2-build) |
+| ImMesh | Ceres **1.14.0**, CGAL **5.0.2**, TBB **2020.1**, GLEW, GLFW, GLM, OpenGL/GLU, `cv_bridge`, `eigen_conversions`, `message_filters`, `rosbag`, Livox driver | [ImMesh](immesh/source/README.md) |
+| CAD-Mesher | Ceres **1.14.0**, Boost, LVR2 ROS package **20.11.3**, `mesh_msgs` and `mesh_msgs_conversions` **1.1.0** | [CAD-Mesher](cad_mesher/source/CAD_Mesher/README.md#2-build) |
 
 The ROS packages `ros-noetic-lvr2`, `ros-noetic-mesh-msgs` and
 `ros-noetic-mesh-msgs-conversions` provide the mesh dependencies. For ImMesh,
@@ -81,10 +91,7 @@ For an existing Python environment, set `RIMBA_VDBFUSION_PYTHON` or
 checkout's pinned `source/`. ROS replay interpreters can also be selected with
 `RIMBA_IMMESH_PYTHON` and `RIMBA_CAD_MESHER_PYTHON`.
 
-These native adapters have not yet been validated together in fresh prepared
-environments. The system dependencies follow the previous execution paths; the accompanying
-Python requirements still need validation with these adapters. They are separate
-from the verified RIMBA toolchain.
+The migrated native launchers still need an end-to-end check in these environments.
 
 ## Run the comparison
 

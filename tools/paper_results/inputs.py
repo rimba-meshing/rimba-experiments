@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 
 from .common import DATASET_LABELS, read_csv, sha256
-from .latex import preview
+from .latex import render
 
 
 def load(path: Path | None) -> dict:
@@ -86,10 +86,10 @@ def external_rows(inputs: dict, kind: str) -> list[dict]:
 def qualitative(publication, inputs: dict) -> None:
     source = inputs.get("qualitative_pdf")
     if source is None:
-        publication.item("figure_qualitative", "requires_input", "Needs matched views with common cameras and crops for the compared methods.")
+        publication.item("figure_qualitative", "requires_input", "Matched qualitative views were not supplied.")
         return
     publication.item("figure_qualitative", "supplied", "Provided matched captures. Source: " + source["source"])
     pdf = publication.path("figure_qualitative", "pdf")
     shutil.copyfile(source["file"], pdf)
-    preview(publication, "figure_qualitative", pdf)
     publication.register("figure_qualitative", pdf)
+    render(publication, "figure_qualitative", r"\includegraphics[width=\linewidth,height=.6\textheight,keepaspectratio]{figures/figure_qualitative.pdf}")

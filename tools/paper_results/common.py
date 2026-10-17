@@ -94,7 +94,7 @@ class Publication:
         return item
 
     def path(self, key: str, suffix: str) -> Path:
-        directory = self.output / CATALOG[key][0]
+        directory = self.output / ("data" if suffix == "csv" else "figures")
         directory.mkdir(parents=True, exist_ok=True)
         return directory / f"{key}.{suffix}"
 

@@ -18,13 +18,13 @@
             legend columns=2,
             legend style={draw=none,font=\scriptsize},
         ]
-            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{figure_memory_maicity.csv};
+            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{data/figure_memory_maicity.csv};
             \addlegendentry{Host live}
-            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{figure_memory_maicity.csv};
+            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{data/figure_memory_maicity.csv};
             \addlegendentry{CUDA live}
         \nextgroupplot[title={KITTI \EvaluationKittiSequence}]
-            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{figure_memory_kitti.csv};
-            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{figure_memory_kitti.csv};
+            \addplot+[orange!85!black,thin] table[col sep=comma,x=frame,y=host_live]{data/figure_memory_kitti.csv};
+            \addplot+[blue!75!black,thick] table[col sep=comma,x=frame,y=cuda_live]{data/figure_memory_kitti.csv};
     \end{groupplot}
     \path (current bounding box.south) node[below=3pt] {\pgfplotslegendfromname{evaluation-memory-legend}};
 \end{tikzpicture}

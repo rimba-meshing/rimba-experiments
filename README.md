@@ -18,9 +18,8 @@ and generate results, tables, and figures.
 - CMake **4.2 or newer**, Make, Git, and GNU `time` at `/usr/bin/time`.
 - Python **3.12** with NumPy, Matplotlib, Pillow, and Open3D CPU.
 - Open3D runtime libraries: `libegl1`, `libgl1`, and `libgomp1` on Ubuntu.
-- LaTeX with PGFPlots, `standalone`, and `booktabs`. On Ubuntu, install
+- LaTeX with PGFPlots and the usual table/layout packages. On Ubuntu, install
   `texlive-latex-extra`, `texlive-pictures`, and `texlive-fonts-recommended`.
-- Poppler's `pdftocairo` for browser previews (`poppler-utils` on Ubuntu).
 
 Verified toolchain: Ubuntu 24.04, CUDA **13.2.0** (`nvcc 13.2.51`), GCC **13.3**,
 and CMake **4.2.3**. Earlier CUDA releases have not been verified.
@@ -49,7 +48,8 @@ git clone --branch master https://github.com/RuanJY/TanksAndTemples.git /path/to
 
 ### Datasets
 
-- **KITTI odometry:** sequence `07`, 1101 frames.
+- **KITTI odometry:** sequences `03` (801 frames), `05` (2761), `06` (1101),
+  `07` (1101), and `10` (1201).
 - **MaiCity:** sequence `01`, 100 frames.
 - **Quality reference:** an independent point cloud accumulated from MaiCity
   sequence `02`, in the same global coordinate system.
@@ -79,22 +79,25 @@ python3 reproduce.py
 ```
 
 The script builds RIMBA, runs the experiments, validates the results, and
-creates `results/paper_protocol/<run>/index.html`. Open that file to browse
-the results in the order of the paper's Evaluation section.
+creates `results/paper_protocol/<run>/report.pdf`. The report follows the
+paper's Evaluation sections: geometric quality, computational performance,
+and scheduling ablation. It contains the tables and figures, using the
+manuscript's PGFPlots definitions.
 
-- `geometric_quality/`: quality tables, spatial error maps, and supplied views.
-- `computational_performance/`: runtime, per-frame times, stages, and memory.
-- `scheduling_ablation/`: scheduling performance and its effect on the output.
-- `provenance.json`: measurement revisions, validation, and artifact checksums.
-- `raw.tar.gz`: original measurements and technical logs.
+- `report.pdf`: the complete results document.
+- `report.tex`: editable LaTeX source, including the measured revisions.
+- `data/`: the CSV data used in the tables and plots.
+- `figures/`: quality-map images and supplied captures, when applicable.
 
-Tables have CSV, LaTeX fragments, and PDF outputs. Figures have their source
-data and PDF, with previews embedded in the index. Standalone LaTeX sources
-are retained in the raw archive. The plots use the manuscript's PGFPlots
-definitions. The index identifies generated outputs, partial
-comparisons, omitted evaluations, and figures needing additional inputs.
+The default output contains no HTML, logs, JSON metadata, or raw-data archive.
+Temporary measurements and compiler files are removed after a successful
+export. `--keep-raw` preserves them for later analysis and troubleshooting.
+Missing comparison inputs and omitted evaluations are stated in the report.
 
 - Variants: sequential, pre-scan, and pre-scan with the polyline blocker.
+- Runtime comparison: the reference configuration on all five KITTI
+  sequences and MaiCity 01. Ablations, memory profiles, and stage timings use
+  KITTI 07 and MaiCity 01.
 - Throughput: 3 warmups and 10 measured repetitions per variant.
 - Memory, stage timings, and geometric quality are measured separately.
 - Meshing times exclude dataset loading and PLY writing.
@@ -105,23 +108,26 @@ comparisons, omitted evaluations, and figures needing additional inputs.
 Useful options:
 
 - `--skip-quality`: omit geometric-quality evaluation.
-- `--diagnostic-frame-count 20`: run a short diagnostic interval.
+- `--diagnostic-frame-count 20`: use that many frames in every sequence.
 - `--report-only PATH`: validate and summarize existing results.
 - `--output PATH`: choose a new destination, including for `--report-only`.
-- `--keep-meshes`: retain meshes outside the raw archive for inspection.
+- `--keep-raw`: add `raw.tar.gz` and `provenance.json` for detailed auditing
+  and future re-export.
+- `--keep-meshes`: retain meshes for inspection.
 - `--paper-inputs FILE`: include supplied comparison results and matched views.
 - `--help`: show all launcher options.
 
-Convert an existing measurement directory or paper bundle without rerunning
-the experiments:
+Convert an existing raw measurement directory or a bundle retained with
+`--keep-raw` without rerunning the experiments:
 
 ```bash
 python3 reproduce.py --report-only /path/to/run --output results/paper_from_existing
 ```
 
 The original run is preserved. Its frame counts and quality setting are
-detected automatically. `--diagnostic-frame-count` can enforce an expected
-short interval during conversion.
+detected automatically. Conversion uses only recorded measurements; it does
+not fill missing KITTI sequences in older runs. The generated `report.tex`
+can also be recompiled directly with LaTeX using its companion data/images.
 
 <details>
 <summary>Additional inputs for the full paper comparisons</summary>
@@ -147,7 +153,7 @@ the same evaluation protocol, source revision, and frame interval as the
 reference run, recording `--max-triangle-dist 0.55` in both metadata and
 the mesh-generation command (`tools/run_paper_protocol.py` supports it).
 Matched views are supplied explicitly to preserve the paper's cameras/crops.
-The input files are retained with the archived evidence.
+The input files are retained with the archived evidence when using `--keep-raw`.
 
 </details>
 

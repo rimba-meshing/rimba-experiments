@@ -75,9 +75,7 @@ def export(publication, inputs: dict) -> list[dict]:
     paths = [item["directory"] / f"__.{metric}.ply" for _, item in candidates for metric in ("precision", "recall")]
     extent = colored_ply_extent(paths)
     status = "complete" if len(candidates) == 2 else "partial"
-    note = "Common extent and manuscript rasterization rules."
-    if status == "partial":
-        note += " Reference panels only. The paper figure also contains the edge-limit sensitivity panels."
+    note = "The 0.55 m sensitivity panels were not supplied." if status == "partial" else ""
     publication.item("figure_error_maps", status, note)
     panels, rows = [], []
     clip = 3 * number(ref["row"], "tau_m")
@@ -87,7 +85,7 @@ def export(publication, inputs: dict) -> list[dict]:
             path = publication.path("figure_error_maps", "png").with_name(name)
             width, height = render_quality_map(item["directory"] / f"__.{metric}.ply", path, extent)
             publication.register("figure_error_maps", path)
-            panels.append((metric.title() + ", " + variant, name))
+            panels.append((metric.title() + ", " + variant, "figures/" + name))
             rows.append({"panel": variant + "_" + metric, "xmin": extent[0], "xmax": extent[1],
                          "ymin": extent[2], "ymax": extent[3], "width": width, "height": height, "clip_m": clip})
     publication.data("figure_error_maps", rows)

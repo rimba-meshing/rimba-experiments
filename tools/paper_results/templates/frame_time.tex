@@ -18,16 +18,16 @@
             legend columns=-1,
             legend style={draw=none,font=\small},
         ]
-            \addplot+[black!70,thin] table[col sep=comma,x=frame,y=none]{figure_frame_time_maicity.csv};
+            \addplot+[black!70,thin] table[col sep=comma,x=frame,y=none]{data/figure_frame_time_maicity.csv};
             \addlegendentry{Sequential}
-            \addplot+[blue!75!black,thin] table[col sep=comma,x=frame,y=prescan]{figure_frame_time_maicity.csv};
+            \addplot+[blue!75!black,thin] table[col sep=comma,x=frame,y=prescan]{data/figure_frame_time_maicity.csv};
             \addlegendentry{Early preparation}
-            \addplot+[red!65!black,thick] table[col sep=comma,x=frame,y=polyline]{figure_frame_time_maicity.csv};
+            \addplot+[red!65!black,thick] table[col sep=comma,x=frame,y=polyline]{data/figure_frame_time_maicity.csv};
             \addlegendentry{Boundary-assisted}
         \nextgroupplot[title={KITTI \EvaluationKittiSequence}]
-            \addplot+[black!70,thin] table[col sep=comma,x=frame,y=none]{figure_frame_time_kitti.csv};
-            \addplot+[blue!75!black,thin] table[col sep=comma,x=frame,y=prescan]{figure_frame_time_kitti.csv};
-            \addplot+[red!65!black,thick] table[col sep=comma,x=frame,y=polyline]{figure_frame_time_kitti.csv};
+            \addplot+[black!70,thin] table[col sep=comma,x=frame,y=none]{data/figure_frame_time_kitti.csv};
+            \addplot+[blue!75!black,thin] table[col sep=comma,x=frame,y=prescan]{data/figure_frame_time_kitti.csv};
+            \addplot+[red!65!black,thick] table[col sep=comma,x=frame,y=polyline]{data/figure_frame_time_kitti.csv};
     \end{groupplot}
     \path (current bounding box.south) node[below=3pt] {\pgfplotslegendfromname{evaluation-frame-time-legend}};
 \end{tikzpicture}

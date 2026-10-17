@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from . import analysis, bundle, index, inputs, quality, tables
+from . import analysis, bundle, inputs, quality, report, runtime, tables
 from .common import CATALOG, Publication, sha256, write_json
 from .latex import figure, require_rendering
 
@@ -37,7 +37,7 @@ def exporter_record() -> dict:
     def git(*args):
         return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
     rendering = {}
-    for command in (["pdflatex", "--version"], ["pdftocairo", "-v"]):
+    for command in (["pdflatex", "--version"],):
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         rendering[command[0]] = (result.stdout or result.stderr).splitlines()[0]
     files = list((root / "tools/paper_results").rglob("*.py")) + list((root / "tools/paper_results/templates").glob("*.tex"))
@@ -50,10 +50,11 @@ def provenance(publication: Publication, archive: dict, supplied: dict) -> None:
     environment = publication.source / "environment.json"
     data = {
         "schema": "rimba-paper-results-v1", "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-        "diagnostic": index.diagnostic(publication), "measurement": publication.metadata,
+        "diagnostic": report.diagnostic(publication), "measurement": publication.metadata,
         "environment": json.loads(environment.read_text()) if environment.is_file() else None,
         "verification": publication.verification, "exporter": exporter_record(),
-        "paper_inputs": supplied.get("manifest"), "artifacts": list(publication.items.values()), "raw_archive": archive,
+        "paper_inputs": supplied.get("manifest"),
+        "artifacts": [{k: v for k, v in item.items() if k != "latex"} for item in publication.items.values()], "raw_archive": archive,
         "published_files": [{"path": str(p.relative_to(publication.output)), "bytes": p.stat().st_size, "sha256": sha256(p)}
                             for p in sorted(publication.output.rglob("*")) if p.is_file()
                             and not p.is_relative_to(publication.output / ".work") and p.name not in {"raw.tar.gz", "provenance.json"}],
@@ -64,7 +65,7 @@ def provenance(publication: Publication, archive: dict, supplied: dict) -> None:
 def export(source: Path, output: Path, options) -> Path:
     require_rendering()
     output.mkdir(parents=True, exist_ok=True)
-    if (output / "index.html").exists() or (output / "provenance.json").exists():
+    if any((output / name).exists() for name in ("index.html", "provenance.json", "report.tex", "report.pdf")):
         raise ValueError(f"Publication output already exists: {output}")
     with bundle.open_bundle(source) as raw:
         if output.is_relative_to(raw):
@@ -79,7 +80,8 @@ def export(source: Path, output: Path, options) -> Path:
                 row["f1_percent"] = ""
         summaries = figures(publication)
         tables.core_tables(publication, values, summaries)
-        tables.runtime_table(publication, values, inputs.external_rows(supplied, "runtime"))
+        additional = runtime.records(raw, publication.metadata)
+        tables.runtime_table(publication, values, additional + inputs.external_rows(supplied, "runtime"))
         sensitivity_rows = quality.export(publication, supplied)
         tables.quality_table(publication, inputs.external_rows(supplied, "quality") + sensitivity_rows)
         inputs.qualitative(publication, supplied)
@@ -87,13 +89,14 @@ def export(source: Path, output: Path, options) -> Path:
             raise ValueError("Some paper artifacts have no availability record")
         if options.keep_meshes and (raw / "meshes").is_dir():
             shutil.copytree(raw / "meshes", output / "meshes")
-        archive = bundle.archive_raw(publication, supplied)
-        index.write(publication)
-        provenance(publication, archive, supplied)
-    bundle.verify_files(output)
-    shutil.rmtree(output / ".work", ignore_errors=True)
-    print(f"Paper results: {output / 'index.html'}")
-    return output / "index.html"
+        pdf = report.write(publication)
+        if options.keep_raw:
+            archive = bundle.archive_raw(publication, supplied)
+            provenance(publication, archive, supplied)
+            bundle.verify_files(output)
+    shutil.rmtree(output / ".work")
+    print(f"Paper results: {pdf}")
+    return pdf
 
 
 def main() -> None:
@@ -102,6 +105,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True, help="Destination for the paper outputs.")
     parser.add_argument("--paper-inputs", type=Path, help="Optional JSON describing supplied comparisons and views.")
     parser.add_argument("--keep-meshes", action="store_true")
+    parser.add_argument("--keep-raw", action="store_true", help="Retain raw evidence and provenance; omitted by default.")
     parser.add_argument("--skip-quality", action="store_true")
     parser.add_argument("--expected-kitti-frames", type=int)
     parser.add_argument("--expected-maicity-frames", type=int)

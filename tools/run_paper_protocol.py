@@ -41,7 +41,7 @@ except ModuleNotFoundError:  # Imported as ``tools.run_paper_protocol`` in tests
     from tools.benchmark_statistics import comparison_stats, parse_run_timings, summarize
 
 
-SCRIPT_VERSION = "1.9"
+SCRIPT_VERSION = "2.0"
 DEFAULT_MACRO_ERROR = 0.08
 DEFAULT_CULL_RADIUS = 70.0
 DEFAULT_HOLE_AREA = 50.0
@@ -182,6 +182,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mesh-policy", choices=("all", "quality", "none"), help="Override mesh retention for paper exports.")
     parser.add_argument("--max-triangle-dist", type=float, default=0.30, help="Shared continuity/edge limit in metres (paper reference: 0.30, sensitivity: 0.55).")
     parser.add_argument("--paper-output", action="store_true", help="Measure the paper's scopes without empty templates or auxiliary overlap passes.")
+    parser.add_argument("--include-runtime-sequences", action="store_true", help="Also time KITTI 03/05/06/10 with the reference configuration.")
+    parser.add_argument("--runtime-frame-count", type=int, help="Diagnostic frame count for the additional KITTI timing passes.")
     parser.add_argument("--skip-main", action="store_true")
     parser.add_argument("--skip-ablation", action="store_true")
     parser.add_argument("--skip-memory", action="store_true")
@@ -191,6 +193,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if not math.isfinite(args.max_triangle_dist) or args.max_triangle_dist <= 0:
         parser.error("--max-triangle-dist must be finite and positive")
+    if args.runtime_frame_count is not None and args.runtime_frame_count <= 0:
+        parser.error("--runtime-frame-count must be positive")
     args.source_dir = args.source_dir.expanduser().resolve()
     args.cmake = args.cmake or default_cmake(args.source_dir)
     return args
@@ -1350,6 +1354,9 @@ def main() -> int:
                 memory_rows.extend(memory_snapshots)
                 run_timing_rows.extend(run_timing_rows_for(row, summary))
                 persist()
+    if args.include_runtime_sequences:
+        from paper_results.runtime import measure
+        measure(args, binaries["benchmark"])
     if not args.paper_output:
         write_qualitative_manifest(args, specs, rows, args.output)
         write_external_template(args.output)

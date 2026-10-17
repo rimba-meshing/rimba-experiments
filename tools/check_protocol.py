@@ -142,12 +142,16 @@ def validate_bundle(root: Path, args) -> dict:
                 require(sorted(frames) == list(range(start, start + count)), f"Incomplete frame metrics: {run_id}")
     if not args.skip_quality:
         check_quality(root)
+    from paper_results.runtime import records
+    additional = records(root, metadata)
     return {
         "status": "passed", "checked_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "source_commit": metadata["source_git"]["commit"], "experiments_commit": metadata["git"]["commit"],
         "protocol_sections": len(runs), "throughput_samples": timing_count,
         "frame_counts": {d: int(runs[f"{d}_scheduler_none_throughput"]["frame_count"]) for d in ("kitti", "maicity")},
         "quality_checked": not args.skip_quality,
+        "runtime_sequences": [r["sequence"] for r in additional],
+        "additional_runtime_samples": len(additional) * metadata["arguments"]["runs"],
     }
 
 

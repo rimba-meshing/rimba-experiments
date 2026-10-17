@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent
 
 from tools.paper_results.latex import require_rendering
 from tools.paper_results import inputs
+from tools.paper_results.runtime import EXTRA_KITTI
 
 
 def env_path(name: str) -> Path | None:
@@ -40,6 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Check prerequisites and print commands without writing results.")
     parser.add_argument("--report-only", type=Path, metavar="BUNDLE", help="Export paper figures and tables from existing measurements into a new output directory.")
     parser.add_argument("--keep-meshes", action="store_true", help="Retain meshes outside the raw archive for interactive inspection.")
+    parser.add_argument("--keep-raw", action="store_true", help="Keep raw measurements, logs and machine-readable provenance for later analysis.")
     parser.add_argument("--paper-inputs", type=Path, help="Optional JSON supplying comparisons, sensitivity results, or matched views.")
     args = parser.parse_args()
     if args.build_jobs < 1 or (args.diagnostic_frame_count is not None and args.diagnostic_frame_count < 1):
@@ -106,6 +108,8 @@ def preflight(args: argparse.Namespace, counts: tuple[int, int]) -> dict:
     if args.report_only:
         source = args.report_only
         if not (source / "metadata.json").is_file() and not (source / "raw.tar.gz").is_file() and not source.is_file():
+            if (source / "report.tex").is_file():
+                raise ValueError("This report keeps derived data only. Recompile report.tex with LaTeX, or export from measurements saved with --keep-raw.")
             raise ValueError(f"No measurement manifest or raw archive at {source}")
         return {"packages": check_python(False)}
     source = ROOT / "rimba"
@@ -126,6 +130,8 @@ def preflight(args: argparse.Namespace, counts: tuple[int, int]) -> dict:
             if capture(["git", "-C", str(repo), "status", "--porcelain"]):
                 raise ValueError(f"Commit or discard changes before reproduction: {repo}")
     check_dataset(args.kitti_dataset, "07", counts[0], "RI_KITTI_DATASET")
+    for sequence, count in EXTRA_KITTI.items():
+        check_dataset(args.kitti_dataset, sequence, args.diagnostic_frame_count or count, "RI_KITTI_DATASET")
     check_dataset(args.maicity_dataset, "01", counts[1], "RI_MAICITY_DATASET")
     check_quality(args)
     return {
@@ -139,13 +145,15 @@ def preflight(args: argparse.Namespace, counts: tuple[int, int]) -> dict:
 def protocol_command(args: argparse.Namespace, counts: tuple[int, int]) -> list[str]:
     command = [
         sys.executable, str(ROOT / "tools/run_paper_protocol.py"),
-        "--require-clean", "--paper-output", "--output", str(args.output / ".work/raw"),
+        "--require-clean", "--paper-output", "--include-runtime-sequences", "--output", str(args.output / ".work/raw"),
         "--kitti-dataset", str(args.kitti_dataset), "--maicity-dataset", str(args.maicity_dataset),
         "--kitti-frame-count", str(counts[0]), "--maicity-frame-count", str(counts[1]),
         "--cmake", args.cmake, "--build-jobs", str(args.build_jobs),
     ]
     policy = "all" if args.keep_meshes else "none" if args.skip_quality else "quality"
     command += ["--mesh-policy", policy]
+    if args.diagnostic_frame_count:
+        command += ["--runtime-frame-count", str(args.diagnostic_frame_count)]
     if args.skip_quality:
         command.append("--skip-quality")
     else:
@@ -162,6 +170,8 @@ def result_commands(args: argparse.Namespace, counts: tuple[int, int]) -> list[l
         report.append("--skip-quality")
     if args.keep_meshes:
         report.append("--keep-meshes")
+    if args.keep_raw:
+        report.append("--keep-raw")
     if args.paper_inputs:
         report += ["--paper-inputs", str(args.paper_inputs)]
     return [report]
@@ -192,7 +202,7 @@ def main() -> None:
         (raw / "reproduce-command.txt").write_text(shlex.join([sys.executable, str(ROOT / "reproduce.py"), *sys.argv[1:]]) + "\n")
     for command in commands:
         subprocess.run(command, cwd=ROOT, check=True)
-    print(f"Validated paper results: {args.output / 'index.html'}")
+    print(f"Validated paper results: {args.output / 'report.pdf'}")
 
 
 if __name__ == "__main__":

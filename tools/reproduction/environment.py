@@ -57,7 +57,8 @@ def evaluator(root: Path) -> Path:
         checkout.parent.mkdir(parents=True, exist_ok=True)
         print("Downloading the TanksAndTemples master evaluator (first run only).", flush=True)
         subprocess.run(["git", "clone", "--depth", "1", "--branch", "master", EVALUATOR_URL, str(checkout)], check=True)
-    if capture(["git", "-C", str(checkout), "remote", "get-url", "origin"]) != EVALUATOR_URL:
+    # Read the stored URL; `remote get-url` applies user-specific SSH rewrites.
+    if capture(["git", "-C", str(checkout), "config", "--get", "remote.origin.url"]) != EVALUATOR_URL:
         raise ValueError(f"Unexpected evaluator origin: {checkout}")
     if capture(["git", "-C", str(checkout), "branch", "--show-current"]) != "master":
         raise ValueError("The cached evaluator must be on master.")

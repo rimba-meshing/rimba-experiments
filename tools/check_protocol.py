@@ -99,9 +99,9 @@ def check_memory(root: Path, runs: dict[str, dict[str, str]]) -> None:
         require(peak > 0 and math.isclose(peak, float(run["gpu_max_memory_mib"])), f"Missing/inconsistent GPU peak: {run_id}")
 
 
-def check_quality(root: Path) -> None:
+def check_quality(root: Path, variants=VARIANTS) -> None:
     rows = csv_rows(root, "quality.csv")
-    require(len(rows) == 3 and {r["variant"] for r in rows} == set(VARIANTS), "Expected three quality evaluations")
+    require(len(rows) == len(variants) and {r["variant"] for r in rows} == set(variants), "Missing or unexpected quality evaluations")
     for row in rows:
         require(row["status"] == "ok", f"Quality not complete: {row['variant']}")
         require(math.isclose(float(row["tau_m"]), 0.1) and math.isclose(float(row["voxel_size_m"]), 0.05), "Quality protocol mismatch")
@@ -142,6 +142,12 @@ def validate_bundle(root: Path, args) -> dict:
                 require(sorted(frames) == list(range(start, start + count)), f"Incomplete frame metrics: {run_id}")
     if not args.skip_quality:
         check_quality(root)
+    sensitivity_checked = False
+    if metadata["arguments"].get("include_sensitivity"):
+        require(not args.skip_quality, "The automatic sensitivity campaign requires quality validation")
+        check_quality(root / "sensitivity", (VARIANTS[-1],))
+        from paper_results.sensitivity import validate
+        sensitivity_checked = validate(root, metadata)
     from paper_results.runtime import records
     additional = records(root, metadata)
     return {
@@ -150,6 +156,7 @@ def validate_bundle(root: Path, args) -> dict:
         "protocol_sections": len(runs), "throughput_samples": timing_count,
         "frame_counts": {d: int(runs[f"{d}_scheduler_none_throughput"]["frame_count"]) for d in ("kitti", "maicity")},
         "quality_checked": not args.skip_quality,
+        "sensitivity_checked": sensitivity_checked,
         "runtime_sequences": [r["sequence"] for r in additional],
         "additional_runtime_samples": len(additional) * metadata["arguments"]["runs"],
     }

@@ -183,6 +183,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-triangle-dist", type=float, default=0.30, help="Shared continuity/edge limit in metres (paper reference: 0.30, sensitivity: 0.55).")
     parser.add_argument("--paper-output", action="store_true", help="Measure the paper's scopes without empty templates or auxiliary overlap passes.")
     parser.add_argument("--include-runtime-sequences", action="store_true", help="Also time KITTI 03/05/06/10 with the reference configuration.")
+    parser.add_argument("--include-sensitivity", action="store_true", help="Also reconstruct and evaluate MaiCity with the paper's 0.55 m limit.")
     parser.add_argument("--runtime-frame-count", type=int, help="Diagnostic frame count for the additional KITTI timing passes.")
     parser.add_argument("--skip-main", action="store_true")
     parser.add_argument("--skip-ablation", action="store_true")
@@ -191,6 +192,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-quality", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if args.include_sensitivity and (args.skip_quality or args.quality_ground_truth is None or args.quality_runner is None or args.mesh_policy == "none"):
+        parser.error("--include-sensitivity requires configured quality evaluation and retained MaiCity meshes")
+    if args.include_sensitivity and not math.isclose(args.max_triangle_dist, 0.30):
+        parser.error("--include-sensitivity requires the 0.30 m reference configuration")
     if not math.isfinite(args.max_triangle_dist) or args.max_triangle_dist <= 0:
         parser.error("--max-triangle-dist must be finite and positive")
     if args.runtime_frame_count is not None and args.runtime_frame_count <= 0:
@@ -1220,6 +1225,9 @@ def main() -> int:
         "arguments": vars(args),
     }
     metadata["arguments"] = {key: str(value) if isinstance(value, Path) else value for key, value in metadata["arguments"].items()}
+    preparation = args.output / "reference_preparation.json"
+    if preparation.is_file():
+        metadata["reference_preparation"] = json.loads(preparation.read_text())
     (args.output / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     if args.require_clean and (metadata["git"]["status"] or metadata["source_git"]["status"]):
         raise RuntimeError("Experiment or source checkout is dirty; omit --require-clean only when intentional.")
@@ -1363,6 +1371,9 @@ def main() -> int:
         write_artifact_readme(specs, args.output)
     if not args.paper_output or not args.skip_quality:
         write_csv(args.output / "quality.csv", run_optional_quality(args, rows, args.output, root))
+    if args.include_sensitivity:
+        from paper_results.sensitivity import measure
+        measure(args, binaries["benchmark"], metadata)
     metadata["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     metadata["result_files"] = [str(path.relative_to(args.output)) for path in sorted(args.output.rglob("*")) if path.is_file()]
     (args.output / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")

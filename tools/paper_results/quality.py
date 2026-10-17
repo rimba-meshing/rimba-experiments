@@ -26,6 +26,9 @@ def sensitivity(source: Path, ref: dict) -> dict:
         raise ValueError("Sensitivity and reference use different quality protocols or ground truth")
     ref_metadata = json.loads((ref["directory"].parents[2] / "metadata.json").read_text())
     metadata = json.loads((source / "metadata.json").read_text())
+    for key in ("sha256", "frames", "vertices", "poses_sha256", "calibration_sha256"):
+        if metadata.get("reference_preparation", {}).get(key) != ref_metadata.get("reference_preparation", {}).get(key):
+            raise ValueError(f"Sensitivity reference preparation differs: {key}")
     for key in ("maicity_sequence", "maicity_start_frame", "maicity_frame_count"):
         if metadata["arguments"][key] != ref_metadata["arguments"][key]:
             raise ValueError(f"Sensitivity interval differs: {key}")
@@ -66,12 +69,14 @@ def export(publication, inputs: dict) -> list[dict]:
         raise ValueError("The reference paper export requires the 0.30 m edge limit")
     candidates = [("reference", ref)]
     extra_rows = []
-    if "sensitivity_results" in inputs:
-        extra = sensitivity(inputs["sensitivity_results"], ref)
+    automatic = publication.metadata["arguments"].get("include_sensitivity")
+    candidate_source = publication.source / "sensitivity" if automatic else inputs.get("sensitivity_results")
+    if candidate_source is not None:
+        extra = sensitivity(candidate_source, ref)
         candidates.append(("sensitivity", extra))
         extra_rows.append({"method": "RIMBA (0.55 m)", "max_triangle_edge_m": 0.55,
                            **{k + "_percent": 100 * number(extra["row"], k) for k in ("precision", "recall", "f1")},
-                           "tau_m": number(extra["row"], "tau_m"), "source": "archived sensitivity run"})
+                           "tau_m": number(extra["row"], "tau_m"), "source": "this run, 0.55 m" if automatic else "archived sensitivity run"})
     paths = [item["directory"] / f"__.{metric}.ply" for _, item in candidates for metric in ("precision", "recall")]
     extent = colored_ply_extent(paths)
     status = "complete" if len(candidates) == 2 else "partial"
@@ -85,7 +90,8 @@ def export(publication, inputs: dict) -> list[dict]:
             path = publication.path("figure_error_maps", "png").with_name(name)
             width, height = render_quality_map(item["directory"] / f"__.{metric}.ply", path, extent)
             publication.register("figure_error_maps", path)
-            panels.append((metric.title() + ", " + variant, "figures/" + name))
+            edge = "0.30" if variant == "reference" else "0.55"
+            panels.append((metric.title() + ", " + edge + " m", "figures/" + name))
             rows.append({"panel": variant + "_" + metric, "xmin": extent[0], "xmax": extent[1],
                          "ymin": extent[2], "ymax": extent[3], "width": width, "height": height, "clip_m": clip})
     publication.data("figure_error_maps", rows)

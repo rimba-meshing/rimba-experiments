@@ -62,6 +62,12 @@ def header(publication) -> str:
         f"% Repetitions: {arguments['warmup_runs']} warmups, {arguments['runs']} measured",
         "% GPU: " + next(iter(publication.metadata.get("gpu_before", [])), "not recorded"),
     ])
+    reference = publication.metadata.get("reference_preparation")
+    if reference:
+        measurement += (f"\n% Reference: MaiCity {reference['sequence']}, {reference['frames']} frames, {reference['vertices']} vertices"
+                        f"\n% Reference SHA-256: {reference['sha256']}"
+                        f"\n% Reference poses SHA-256: {reference['poses_sha256']}"
+                        f"\n% Reference calibration SHA-256: {reference['calibration_sha256']}")
     return r"""\documentclass[10pt,a4paper]{article}
 \usepackage[margin=22mm]{geometry}
 \usepackage[T1]{fontenc}

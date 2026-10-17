@@ -8,7 +8,7 @@ and generate results, tables, and figures.
 - `rimba/`: RIMBA library submodule.
 - `reproduce.py`: experiment launcher.
 - `tools/`: evaluation, analysis, and rendering tools.
-- `results/`: generated measurements, meshes, and reports.
+- `results/`: generated tables, figures, and reports.
 
 ## Requirements
 
@@ -36,129 +36,116 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-### Quality evaluation
-
-- Evaluator: [RuanJY/TanksAndTemples](https://github.com/RuanJY/TanksAndTemples).
-- Use its `master` branch without local modifications.
-- Python dependencies are included in the installation above.
-
-```bash
-git clone --branch master https://github.com/RuanJY/TanksAndTemples.git /path/to/TanksAndTemples
-```
-
 ### Datasets
 
-- **KITTI odometry:** sequences `03` (801 frames), `05` (2761), `06` (1101),
-  `07` (1101), and `10` (1201).
-- **MaiCity:** sequence `01`, 100 frames.
-- **Quality reference:** an independent point cloud accumulated from MaiCity
-  sequence `02`, in the same global coordinate system.
+- [KITTI odometry](https://www.cvlibs.net/datasets/kitti/eval_odometry.php):
+  sequences `03` (801 frames), `05` (2761), `06` (1101), `07` (1101), and
+  `10` (1201), with calibration and ground-truth poses.
+- [MaiCity](https://www.ipb.uni-bonn.de/data/mai-city-dataset/): sequences
+  `01` and `02`, 100 frames each, with calibration and ground-truth poses.
+  Sequence `01` is reconstructed; sequence `02` supplies the independent
+  quality reference.
 
-Each dataset root must contain:
+Each dataset root must contain binary float32 XYZI scans and calibration:
 
 ```text
 sequences/<sequence>/
 ├── velodyne/000000.bin, 000001.bin, ...
-├── poses.txt
 └── calib.txt
 ```
 
-Set the input paths:
+Poses can be at `poses/<sequence>.txt` or `sequences/<sequence>/poses.txt`.
+The script handles both layouts without modifying the datasets.
+
+Set the two dataset roots:
 
 ```bash
 export RI_KITTI_DATASET=/path/to/kitti/odometry/dataset
 export RI_MAICITY_DATASET=/path/to/maicity/bin
-export RI_MAICITY_GROUND_TRUTH=/path/to/maicity/bin/sequences/02/global.ply
-export RI_TNT_RUNNER=/path/to/TanksAndTemples/python_toolbox/evaluation/run.py
 ```
 
-## Run the experiments
+Alternatively, put the datasets or symlinks at `datasets/kitti` and
+`datasets/maicity` in this checkout.
+
+## Reproduce the paper experiments
 
 ```bash
 python3 reproduce.py
 ```
 
-The script builds RIMBA, runs the experiments, validates the results, and
-creates `results/paper_protocol/<run>/report.pdf`. The report follows the
-paper's Evaluation sections: geometric quality, computational performance,
-and scheduling ablation. It contains the tables and figures, using the
-manuscript's PGFPlots definitions.
+No arguments are required or accepted. The script:
 
-- `report.pdf`: the complete results document.
-- `report.tex`: editable LaTeX source, including the measured revisions.
-- `data/`: the CSV data used in the tables and plots.
-- `figures/`: quality-map images and supplied captures, when applicable.
+1. Checks the dependencies and datasets.
+2. Downloads [TanksAndTemples](https://github.com/RuanJY/TanksAndTemples)
+   from `master` on first use and reuses the clean cached checkout.
+3. Accumulates MaiCity `02` using its poses and calibration to generate
+   the reference PLY. No prebuilt global point cloud is required.
+4. Builds RIMBA and runs the runtime, memory, scheduling, and quality
+   experiments, including the **0.30 m and 0.55 m** reconstructions.
+5. Validates the measurements and generates the tables, plots, and four
+   precision/recall map panels in a LaTeX/PDF report.
 
-The default output contains no HTML, logs, JSON metadata, or raw-data archive.
-Temporary measurements and compiler files are removed after a successful
-export. `--keep-raw` preserves them for later analysis and troubleshooting.
-Missing comparison inputs and omitted evaluations are stated in the report.
+Results are written to `results/paper_protocol/full_<timestamp>/`:
 
-- Variants: sequential, pre-scan, and pre-scan with the polyline blocker.
-- Runtime comparison: the reference configuration on all five KITTI
-  sequences and MaiCity 01. Ablations, memory profiles, and stage timings use
-  KITTI 07 and MaiCity 01.
-- Throughput: 3 warmups and 10 measured repetitions per variant.
-- Memory, stage timings, and geometric quality are measured separately.
-- Meshing times exclude dataset loading and PLY writing.
+- `report.pdf`: tables and figures grouped by the paper's Evaluation sections.
+- `report.tex`: editable LaTeX source, with measured revisions and the
+  generated reference checksum recorded in comments.
+- `data/`: CSV data used in the tables and plots.
+- `figures/`: quality-map images and any supplied matched views.
+
+Temporary meshes, the reference PLY, logs, and metadata are removed after
+successful export. A failed run retains its temporary files under `.work/`
+for diagnosis. The evaluator stays in `.cache/TanksAndTemples`; the first
+run requires internet access.
+
+### Measurement protocol
+
+- Runtime comparison: all five KITTI sequences and MaiCity `01`.
+- Scheduling ablations, memory profiles, and stage timings: KITTI `07`
+  and MaiCity `01`.
+- Throughput: 3 warmups and 10 measured repetitions per configuration.
+- The 0.55 m sensitivity pass uses the same reference scheduling policy,
+  frame interval, reference cloud, and quality evaluator as the 0.30 m run.
+  Only the shared continuity/triangle-edge threshold changes; stitching
+  and hole-fill thresholds retain their defaults. This extra pass measures
+  geometric quality, not comparative runtime.
+- Quality: 0.10 m tolerance, 0.05 m voxel size, and 6,553,600 sampled mesh
+  points, evaluated directly in global coordinates without registration.
+- Meshing times exclude dataset loading and PLY writing. Memory and stage
+  profiling are measured separately from throughput.
 - Runtime and memory depend on hardware and load. Quality scores can vary
   slightly because the evaluator samples mesh points randomly.
-- Comparisons with other methods require their own runs.
 
-Useful options:
+### Comparisons and matched views
 
-- `--skip-quality`: omit geometric-quality evaluation.
-- `--diagnostic-frame-count 20`: use that many frames in every sequence.
-- `--report-only PATH`: validate and summarize existing results.
-- `--output PATH`: choose a new destination, including for `--report-only`.
-- `--keep-raw`: add `raw.tar.gz` and `provenance.json` for detailed auditing
-  and future re-export.
-- `--keep-meshes`: retain meshes for inspection.
-- `--paper-inputs FILE`: include supplied comparison results and matched views.
-- `--help`: show all launcher options.
+The script generates the RIMBA measurements and quantitative figures.
+Comparisons with other methods require their own runs. If available, these
+files are included automatically:
 
-Convert an existing raw measurement directory or a bundle retained with
-`--keep-raw` without rerunning the experiments:
+- `comparisons/quality.csv`
+- `comparisons/runtime.csv`
+- `comparisons/qualitative.pdf`, with its source described in
+  `comparisons/qualitative-source.txt`
 
-```bash
-python3 reproduce.py --report-only /path/to/run --output results/paper_from_existing
-```
-
-The original run is preserved. Its frame counts and quality setting are
-detected automatically. Conversion uses only recorded measurements; it does
-not fill missing KITTI sequences in older runs. The generated `report.tex`
-can also be recompiled directly with LaTeX using its companion data/images.
+The report identifies missing comparisons or matched views explicitly.
+Historical measurements are not substituted for new runs.
 
 <details>
-<summary>Additional inputs for the full paper comparisons</summary>
+<summary>Comparison CSV columns</summary>
 
-The RIMBA run does not execute the external methods. Optional inputs are
-listed in a JSON file, with paths relative to that file:
+Quality columns: `method`, `precision`, `recall`, `f1`, `tau_m`,
+`voxel_size_m`, `sample_points`, and `source`. Scores use [0, 1] and the
+quality protocol above.
 
-```json
-{
-  "external_quality": "quality.csv",
-  "external_runtime": "runtime.csv",
-  "sensitivity_results": "sensitivity_run",
-  "qualitative_pdf": {"file": "matched_views.pdf", "source": "capture provenance"}
-}
-```
-
-All fields are optional. Quality CSV columns are `method`, `precision`,
-`recall`, `f1`, `tau_m`, `voxel_size_m`, `sample_points`, and `source`.
-Scores use [0, 1]. Runtime columns are `dataset`, `sequence`, `method`,
-`frames`, `time_ms_per_frame`, `hardware`, and `source`. Supplied values are
-identified in their CSV provenance. A sensitivity directory must contain
-the same evaluation protocol, source revision, and frame interval as the
-reference run, recording `--max-triangle-dist 0.55` in both metadata and
-the mesh-generation command (`tools/run_paper_protocol.py` supports it).
-Matched views are supplied explicitly to preserve the paper's cameras/crops.
-The input files are retained with the archived evidence when using `--keep-raw`.
+Runtime columns: `dataset` (`kitti` or `maicity`), `sequence`, `method`,
+`frames`, `time_ms_per_frame`, `hardware`, and `source`.
 
 </details>
 
-The individual tools in `tools/` also provide `--help` for custom runs and
-additional method illustrations.
+The individual tools in `tools/` provide `--help` for custom diagnostics,
+raw-data retention, re-exporting previous measurements, and additional method
+illustrations. For example, `tools/report_protocol.py` can export an existing
+measurement directory and retain its raw evidence with `--keep-raw`.
 
 ## Related repositories
 

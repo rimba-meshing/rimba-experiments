@@ -30,6 +30,8 @@ def wait_idle(case, node):
 def run(case):
     workspace = build(case)
     environment = built_environment(case, workspace)
+    for directory in ("Log", "PCD"):
+        (case.output / "ImMesh_output" / directory).mkdir(parents=True)
     environment["RIMBA_IMMESH_OUTPUT_ROOT"] = str(case.output)
     environment["PYTHONPATH"] = str(case.root) + os.pathsep + environment.get("PYTHONPATH", "")
     python = os.environ.get("RIMBA_IMMESH_PYTHON", os.environ.get("RIMBA_ROS_PYTHON", "/usr/bin/python3"))

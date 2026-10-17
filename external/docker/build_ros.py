@@ -9,8 +9,10 @@ WORKSPACE = Path("/opt/workspace")
 RELEASE = ["-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -g0"]
 PATCHES = {
     "slamesh": (("0001-portable-catkin-dir.patch", 1), ("0002-sequence-pose-mapping.patch", 1)),
-    "immesh": (("0001-enable-headless-autosave.patch", 0), ("0002-sequence-pose-mapping.patch", 1), ("0003-output-directory.patch", 1)),
-    "cad_mesher": (),
+    "immesh": (("0001-enable-headless-autosave.patch", 0), ("0002-sequence-pose-mapping.patch", 1),
+               ("0003-output-directory.patch", 1), ("0004-runtime-log-directory.patch", 1),
+               ("0005-drain-workers-before-export.patch", 1)),
+    "cad_mesher": (("0001-join-workers-on-shutdown.patch", 1),),
 }
 
 

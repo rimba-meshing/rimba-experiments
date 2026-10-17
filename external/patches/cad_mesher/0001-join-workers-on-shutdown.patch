@@ -1,0 +1,12 @@
+--- a/src/cad_mesher_node.cpp
++++ b/src/cad_mesher_node.cpp
+@@ -1206,6 +1206,9 @@
+ }
+ 
+ CAD_Mesher::~CAD_Mesher(){
++    abort();
++    if (MappingThread.joinable()) MappingThread.join();
++    if (SpaciousnessThread.joinable()) SpaciousnessThread.join();
+     f_save_pose_evo.close();
+ }
+ 

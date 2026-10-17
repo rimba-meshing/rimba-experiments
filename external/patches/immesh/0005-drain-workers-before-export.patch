@@ -1,0 +1,106 @@
+--- a/src/ImMesh_mesh_reconstruction.cpp
++++ b/src/ImMesh_mesh_reconstruction.cpp
+@@ -269,6 +269,8 @@
+ 
+ 
+ 
++bool g_mesh_stop_requested = false;
++
+ void service_reconstruct_mesh()
+ {
+     if ( g_thread_pool_rec_mesh == nullptr )
+@@ -279,12 +281,15 @@
+     while ( 1 )
+     {
+         
+-            while ( g_rec_mesh_data_package_list.size() == 0 )
+-            {
++            std::unique_lock<std::mutex> package_lock( g_mutex_data_package_lock );
++            if ( g_rec_mesh_data_package_list.empty() )
++            {
++                if ( g_mesh_stop_requested )
++                    return;
++                package_lock.unlock();
+                 std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
+-            }
+-
+-            g_mutex_data_package_lock.lock();
++                continue;
++            }
+             while ( g_rec_mesh_data_package_list.size() > 1e5 )
+             {
+                 cout << "Drop mesh frame [" << g_rec_mesh_data_package_list.front().m_frame_idx;
+@@ -297,7 +302,7 @@
+             }
+             Rec_mesh_data_package data_pack_front = g_rec_mesh_data_package_list.front();
+             g_rec_mesh_data_package_list.pop_front();
+-            g_mutex_data_package_lock.unlock();
++            package_lock.unlock();
+             // ANCHOR - Comment follow line to disable meshing
+             if ( g_enable_mesh_rec )
+             {
+@@ -311,6 +316,20 @@
+ extern bool  g_flag_pause;
+ int          g_frame_idx = 0;
+ std::thread *g_rec_mesh_thr = nullptr;
++
++// Called after the mapping producer stops; drain all submitted work before export.
++void stop_mesh_threads()
++{
++    {
++        std::lock_guard<std::mutex> lock( g_mutex_data_package_lock );
++        g_mesh_stop_requested = true;
++    }
++    if ( g_rec_mesh_thr && g_rec_mesh_thr->joinable() )
++        g_rec_mesh_thr->join();
++    delete g_rec_mesh_thr;
++    g_rec_mesh_thr = nullptr;
++    g_thread_pool_rec_mesh.reset();
++}
+ 
+ void start_mesh_threads( int maximum_threads = 20 )
+ {
+--- a/src/voxel_mapping.hpp
++++ b/src/voxel_mapping.hpp
+@@ -129,6 +129,8 @@
+ void calcBodyVar( Eigen::Vector3d &pb, const float range_inc, const float degree_inc, Eigen::Matrix3d &var );
+ 
+ void reconstruct_mesh_from_pointcloud( pcl::PointCloud< pcl::PointXYZI >::Ptr frame_pts, double minimum_pts_distance = 0.01 );
++void stop_mesh_threads();
++
+ class Voxel_mapping
+ {
+   public:
+--- a/src/meshing/mesh_rec_display.cpp
++++ b/src/meshing/mesh_rec_display.cpp
+@@ -1,6 +1,7 @@
+ #define STB_IMAGE_WRITE_IMPLEMENTATION
+ #define STBI_MSC_SECURE_CRT
+ #include "mesh_rec_display.hpp"
++#include <ros/ros.h>
+ #include "tools/openGL_libs/gl_draw_founction.hpp"
+ 
+ #include "tools_timer.hpp"
+@@ -263,7 +264,7 @@
+ {
+     g_axis_min_max[ 0 ] = vec_3f( 1e8, 1e8, 1e8 );
+     g_axis_min_max[ 1 ] = vec_3f( -1e8, -1e8, -1e8 );
+-    while ( 1 )
++    while ( ros::ok() )
+     {
+         std::this_thread::sleep_for( std::chrono::milliseconds( ( int ) sleep_time ) );
+         synchronize_triangle_list_for_disp();
+--- a/src/ImMesh_node.cpp
++++ b/src/ImMesh_node.cpp
+@@ -566,6 +566,11 @@
+         cout << ANSI_COLOR_YELLOW_BOLD << "Shutting down, saving mesh..." << ANSI_COLOR_RESET << endl;
+     }
+     
++    ros::shutdown();
++    thr_mapping.join();
++    stop_mesh_threads();
++    thr.join();
++
+     // Save mesh on exit (works for both GUI and headless modes)
+     if (g_if_automatic_save_mesh || !voxel_mapping.m_if_draw_mesh)
+     {

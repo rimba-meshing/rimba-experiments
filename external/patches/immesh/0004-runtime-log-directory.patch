@@ -1,0 +1,41 @@
+--- a/src/voxel_mapping.cpp
++++ b/src/voxel_mapping.cpp
+@@ -1695,8 +1695,17 @@
+     FILE *fp_kitti;
+     // string kitti_log_dir = "/home/zivlin/temp/FAST-LIO-Voxelmap//Log/"
+     //                        "kitti_log_voxelmap.txt";
+-    string kitti_log_dir = std::string( ROOT_DIR ).append( "/Log/kitti_log_voxelmap.txt" );
++    const string log_root = Common_tools::get_home_folder() + "/ImMesh_output/";
++    Common_tools::create_dir( log_root + "Log" );
++    Common_tools::create_dir( log_root + "PCD" );
++    string kitti_log_dir = log_root + "Log/kitti_log_voxelmap.txt";
+     fp_kitti = fopen( kitti_log_dir.c_str(), "w" );
++    if ( !fp_kitti )
++    {
++        ROS_FATAL( "Cannot open the KITTI trajectory log" );
++        ros::shutdown();
++        return;
++    }
+ /*** variables definition ***/
+ #ifndef USE_IKFOM
+     VD( DIM_STATE ) solution;
+@@ -1753,13 +1762,13 @@
+ #endif
+     /*** debug record ***/
+     FILE * fp;
+-    string pos_log_dir = m_root_dir + "/Log/pos_log.txt";
++    string pos_log_dir = log_root + "Log/pos_log.txt";
+     fp = fopen( pos_log_dir.c_str(), "w" );
+-    m_fout_img_pos.open( string( string( ROOT_DIR ) + "PCD/img_pos.json" ), ios::out );
+-    m_fout_pcd_pos.open( string( string( ROOT_DIR ) + "PCD/scans_pos.json" ), ios::out );
+-    m_fout_pre.open( DEBUG_FILE_DIR( "mat_pre.txt" ), ios::out );
+-    m_fout_out.open( DEBUG_FILE_DIR( "mat_out.txt" ), ios::out );
+-    m_fout_dbg.open( DEBUG_FILE_DIR( "dbg.txt" ), ios::out );
++    m_fout_img_pos.open( log_root + "PCD/img_pos.json", ios::out );
++    m_fout_pcd_pos.open( log_root + "PCD/scans_pos.json", ios::out );
++    m_fout_pre.open( log_root + "Log/mat_pre.txt", ios::out );
++    m_fout_out.open( log_root + "Log/mat_out.txt", ios::out );
++    m_fout_dbg.open( log_root + "Log/dbg.txt", ios::out );
+     // if (fout_pre && fout_out)
+     //     cout << "~~~~"<<ROOT_DIR<<" file opened" << endl;
+     // else

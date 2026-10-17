@@ -41,6 +41,8 @@ The images provide each method's compiler, Python packages and ROS dependencies.
 The host only needs the requirements above. RIMBA's build and report generation
 use the environment documented in the main README.
 
+Tested on an Ubuntu 24.04 host with Docker Engine 29.7.2.
+
 | Method | Image environment | Main dependencies |
 | --- | --- | --- |
 | VDBFusion | Ubuntu 22.04, Python 3.10 | NumPy 1.26.4, Open3D 0.19.0, VDBFusion 0.1.6 |

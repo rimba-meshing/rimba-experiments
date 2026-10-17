@@ -73,14 +73,6 @@ Alternatively, put the datasets or symlinks at `datasets/kitti` and
 python3 reproduce.py
 ```
 
-For a short trial run, with a chosen results folder:
-
-```bash
-python3 reproduce.py --diagnostic-frame-count 20 --output results/trial
-```
-
-Add `--dry-run` to check the setup and preview the commands before starting.
-
 The script builds RIMBA and runs the experiments. It generates the reference
 cloud from all 100 MaiCity `02` scans and downloads the
 [TanksAndTemples](https://github.com/RuanJY/TanksAndTemples) evaluator on the

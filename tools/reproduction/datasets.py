@@ -9,13 +9,15 @@ from ..paper_results.runtime import EXTRA_KITTI
 COUNTS = {"kitti": {"07": 1101, **EXTRA_KITTI}, "maicity": {"01": 100, "02": 100}}
 
 
-def sources(root: Path) -> dict:
+def sources(root: Path, diagnostic_frame_count: int | None = None) -> dict:
     output = {}
     for kind, sequences in COUNTS.items():
         variable = "RI_" + kind.upper() + "_DATASET"
         dataset = Path(os.environ.get(variable, root / "datasets" / kind)).expanduser().resolve()
         selected = {}
         for sequence, count in sequences.items():
+            if diagnostic_frame_count is not None and (kind, sequence) != ("maicity", "02"):
+                count = diagnostic_frame_count
             directory = dataset / "sequences" / sequence
             poses = directory / "poses.txt"
             if not poses.is_file():

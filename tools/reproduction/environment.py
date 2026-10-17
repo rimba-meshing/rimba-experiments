@@ -51,9 +51,12 @@ def preflight(root: Path) -> dict:
     }
 
 
-def evaluator(root: Path) -> Path:
+def evaluator(root: Path, dry_run: bool = False) -> Path:
     checkout = root / ".cache/TanksAndTemples"
     if not checkout.exists():
+        if dry_run:
+            print("First run will download TanksAndTemples master.", flush=True)
+            return checkout / "python_toolbox/evaluation/run.py"
         checkout.parent.mkdir(parents=True, exist_ok=True)
         print("Downloading the TanksAndTemples master evaluator (first run only).", flush=True)
         subprocess.run(["git", "clone", "--depth", "1", "--branch", "master", EVALUATOR_URL, str(checkout)], check=True)

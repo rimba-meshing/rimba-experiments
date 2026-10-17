@@ -13,7 +13,7 @@ CAPTIONS = {
     "table_quality": "Geometric quality on Mai City. Scores are percentages.",
     "figure_error_maps": "Spatial precision and recall. Grey indicates locations without samples.",
     "figure_qualitative": "Matched qualitative views.",
-    "table_runtime": "Processing time per frame (ms). RIMBA values include 95\\% confidence intervals.",
+    "table_runtime": "Processing time per frame (ms).",
     "figure_frame_time": "Mean time at each frame position for the three scheduling policies.",
     "figure_stage_profile": "Sequential stage attribution (A--D) and residual time.",
     "table_memory": "Peak sequential memory. Tracked allocations, process RSS and VRAM have different scopes.",

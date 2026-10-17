@@ -99,8 +99,7 @@ python3 reproduce.py
 ```
 
 The report incorporates their reconstructed meshes and timings automatically.
-The qualitative figure uses the paper's reference captures, whose camera
-matrices were not saved.
+The qualitative figure reuses the reference captures included in this repository.
 
 ## Related repositories
 

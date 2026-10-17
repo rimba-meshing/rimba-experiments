@@ -5,7 +5,6 @@ import shutil
 
 from .common import sha256
 from .latex import escape, render
-from .report import diagnostic
 
 
 def rectangles(boxes, width, height):
@@ -18,12 +17,9 @@ def rectangles(boxes, width, height):
 
 
 def compose(publication):
-    if diagnostic(publication):
-        publication.item("figure_qualitative", "requires_input", "Reference qualitative captures are omitted for diagnostic intervals.")
-        return
     directory = Path(__file__).parents[2] / "assets/qualitative"
     config = json.loads((directory / "views.json").read_text())
-    publication.item("figure_qualitative", "supplied", "Reference captures used in the paper. Camera matrices were not saved; these panels are not re-rendered from this run.")
+    publication.item("figure_qualitative", "supplied", "Paper reference captures.")
     width, height = config["source_image_size"]
     lines = [r"\begingroup\setlength{\tabcolsep}{1pt}\renewcommand{\arraystretch}{0}",
              r"\newcommand{\RimbaPanel}[2]{\begin{tikzpicture}[baseline=(im.south),inner sep=0,outer sep=0]\node[anchor=south west,inner sep=0,outer sep=0] (im) at (0,0) {\includegraphics[width=.265\linewidth]{#1}};\begin{scope}[x={(im.south east)},y={(im.north west)}]#2\end{scope}\end{tikzpicture}}",

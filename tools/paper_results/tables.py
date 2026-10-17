@@ -95,7 +95,8 @@ def runtime_table(publication, values: list[dict], supplied: list[dict]) -> None
         if len(frames) != 1:
             raise ValueError(f"Compared runtime methods use different intervals: {dataset} {sequence}")
         rows.append([escape(dataset), escape(sequence), display({"frames": frames.pop()}, "frames", True),
-                     *[display(selected.get(method, {}), "time_ms_per_frame", True) for method in methods]])
+                     *[f"{float(selected[method]['time_ms_per_frame']):.2f}" if selected.get(method) else "--"
+                       for method in methods]])
     render(publication, "table_runtime", tabular(["Dataset", "Sequence", "Frames", *map(escape, methods)], rows))
 
 
@@ -118,5 +119,26 @@ def quality_table(publication, supplied: list[dict]) -> bool:
     if not complete and not missing:
         note = "Diagnostic interval; the paper comparison uses all 100 Mai City frames."
     publication.item("table_quality", "supplied" if complete else "partial", note)
-    table(publication, "table_quality", records, ("method", "precision_percent", "recall_percent", "f1_percent"))
+    publication.data("table_quality", records)
+    publication.items["table_quality"]["columns"] = ["method", "precision_percent", "recall_percent", "f1_percent"]
+    methods = ("RIMBA", "RIMBA (0.55 m)", "VDBFusion", "PUMA", "SLAMesh", "ImMesh", "CAD-Mesher")
+    by_method = {row["method"]: row for row in records}
+    lines = [r"\begin{adjustbox}{max width=\linewidth}", r"\begin{tabular}{lrrrrrrr}", r"\toprule",
+             r" & \multicolumn{2}{c}{RIMBA} & VDBFusion & PUMA & SLAMesh & ImMesh & \shortstack{CAD-\\Mesher} \\",
+             r"\cmidrule(lr){2-3}", r"Metric & $\ell_{\max}=0.30$ & $\ell_{\max}=0.55$ & & & & & \\", r"\midrule"]
+    for field, label in (("precision_percent", "Precision"), ("recall_percent", "Recall"), ("f1_percent", "F1-score")):
+        values = [float(by_method[method][field]) for method in methods if method in by_method]
+        best = max(values) if values else None
+        cells = []
+        for method in methods:
+            row = by_method.get(method)
+            if row is None:
+                cells.append("--")
+                continue
+            value = float(row[field])
+            cell = f"{value:.2f}"
+            cells.append(r"\textbf{" + cell + "}" if value == best else cell)
+        lines.append(" & ".join([label, *cells]) + r" \\")
+    lines.extend([r"\bottomrule", r"\end{tabular}", r"\end{adjustbox}"])
+    render(publication, "table_quality", "\n".join(lines))
     return True

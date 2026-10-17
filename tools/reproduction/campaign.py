@@ -152,7 +152,7 @@ def run(root: Path, output: Path | None = None, frame_count: int | None = None, 
     subprocess.run(protocol_command(root, output, staged, runner, frame_count), cwd=root, check=True)
     if external:
         external_results.supply(root, external, raw, runner)
-    subprocess.run(report_command(root, output, frame_count), cwd=root, check=True)
     export_qualitative_meshes(raw, output, external)
+    subprocess.run(report_command(root, output, frame_count), cwd=root, check=True)
     print(f"Validated paper results: {output / 'report.pdf'}")
     print(f"Qualitative meshes: {output / 'meshes'}")

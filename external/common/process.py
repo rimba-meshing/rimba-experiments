@@ -42,11 +42,6 @@ def interrupt(process):
             continue
 
 
-def python_for(root: Path, method: str) -> str:
-    variable = "RIMBA_" + method.upper() + "_PYTHON"
-    return os.environ.get(variable, str(root / "external" / method / ".venv/bin/python"))
-
-
 def ros_environment(method: str) -> dict:
     variable = "RIMBA_" + method.upper() + "_SETUP"
     setup = Path(os.environ.get(variable, os.environ.get("RIMBA_ROS_SETUP", "/opt/ros/noetic/setup.bash"))).expanduser().resolve()

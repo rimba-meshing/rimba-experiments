@@ -1,53 +1,22 @@
-"""Build patched workspace copies, leaving the pinned submodules untouched."""
-from pathlib import Path
-import hashlib
+"""Use the patched ROS workspace compiled into the selected image."""
 import json
 import os
-import shutil
+from pathlib import Path
 import subprocess
 
-from .case import git, sha256, write_json
-from .process import execute, ros_environment
-
-PATCHES = {
-    "slamesh": (("0001-portable-catkin-dir.patch", 1), ("0002-sequence-pose-mapping.patch", 1)),
-    "immesh": (("0001-enable-headless-autosave.patch", 0), ("0002-sequence-pose-mapping.patch", 1), ("0003-output-directory.patch", 1)),
-    "cad_mesher": (),
-}
-
-
-def fingerprint(case, environment):
-    setup = Path(os.environ.get("RIMBA_" + case.method.upper() + "_SETUP", os.environ.get("RIMBA_ROS_SETUP", "/opt/ros/noetic/setup.bash"))).expanduser().resolve()
-    patches = {name: sha256(case.root / "external/patches" / case.method / name) for name, _ in PATCHES[case.method]}
-    compiler = subprocess.check_output(["c++", "--version"], env=environment, text=True).splitlines()[0]
-    cmake = subprocess.check_output(["cmake", "--version"], env=environment, text=True).splitlines()[0]
-    record = {"source": git(case.source, "rev-parse", "HEAD"), "patches": patches,
-              "setup": str(setup.resolve()), "setup_sha256": sha256(setup),
-              "prefix": environment.get("CMAKE_PREFIX_PATH", ""), "compiler": compiler, "cmake": cmake}
-    key = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()[:20]
-    return key, record
+from .case import write_json
+from .process import ros_environment
 
 
 def build(case):
-    environment = ros_environment(case.method)
-    key, record = fingerprint(case, environment)
-    workspace = case.root / ".cache/external/build" / (case.method + "-" + key)
-    ready = workspace / "ready.json"
-    if not ready.is_file():
-        if workspace.exists():
-            raise ValueError(f"Incomplete build at {workspace}; inspect/remove it before retrying")
-        source = case.source / "CAD_Mesher" if case.method == "cad_mesher" else case.source
-        package = workspace / "src" / ("ImMesh" if case.method == "immesh" else case.method)
-        shutil.copytree(source, package, ignore=shutil.ignore_patterns(".git", "build", "devel", "__pycache__"))
-        for name, strip in PATCHES[case.method]:
-            patch = case.root / "external/patches" / case.method / name
-            execute(["patch", f"-p{strip}", "--batch", "--forward", "-i", str(patch)], workspace / (name + ".log"), package)
-        execute(["catkin_make", "-DCMAKE_BUILD_TYPE=Release", "-j2"], workspace / "build.log", workspace, environment)
-        if not (workspace / "devel/setup.bash").is_file():
-            raise ValueError(f"Missing catkin build output: {workspace}")
-        write_json(ready, record)
+    prepared = os.environ.get("RIMBA_EXTERNAL_WORKSPACE")
+    if not prepared:
+        raise ValueError("Run ROS methods through reproduce_external.py")
+    record = json.loads(Path("/opt/build-record.json").read_text())
+    if record["source_commit"] != case.revisions["source_commit"]:
+        raise ValueError("Compiled image source differs from the requested submodule")
     write_json(case.output / "build.json", record)
-    return workspace
+    return Path(prepared)
 
 
 def built_environment(case, workspace):

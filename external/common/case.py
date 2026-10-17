@@ -48,6 +48,7 @@ class Case:
     method: str
     workload: Workload
     output: Path
+    revisions: dict | None = None
 
     @property
     def source(self) -> Path:
@@ -55,7 +56,7 @@ class Case:
 
     def record(self) -> dict:
         return {"root": str(self.root), "method": self.method,
-                "workload": self.workload.record(), "output": str(self.output)}
+                "workload": self.workload.record(), "output": str(self.output), "revisions": self.revisions}
 
 
 def load_case() -> Case:
@@ -66,7 +67,7 @@ def load_case() -> Case:
     request = Workload(workload["dataset"], workload["sequence"], int(workload["frames"]), Path(workload["directory"]))
     if request.frames < 1 or data["method"] not in METHODS:
         raise ValueError("Invalid reconstruction request")
-    return Case(Path(data["root"]), data["method"], request, Path(data["output"]))
+    return Case(Path(data["root"]), data["method"], request, Path(data["output"]), data.get("revisions"))
 
 
 def mesh_counts(path: Path) -> dict:
@@ -89,11 +90,12 @@ def finish(case: Case, mesh: Path, timing: dict, extra: dict | None = None) -> N
     target = case.output / "mesh.ply"
     if mesh.resolve() != target.resolve():
         shutil.copyfile(mesh, target)
+    revisions = case.revisions or {"source_commit": git(case.source, "rev-parse", "HEAD"),
+                                   "experiments_commit": git(case.root, "rev-parse", "HEAD")}
     record = {"schema": "rimba-external-case-v1", "method": case.method,
               "workload": case.workload.record(), "mesh": target.name,
               "mesh_sha256": sha256(target), **mesh_counts(target),
-              "timing": timing, "source_commit": git(case.source, "rev-parse", "HEAD"),
-              "experiments_commit": git(case.root, "rev-parse", "HEAD"), **(extra or {})}
+              "timing": timing, **revisions, **(extra or {})}
     native = case.output / timing["source"]
     record["native_trace_sha256"] = sha256(native)
     write_json(case.output / "result.json", record)

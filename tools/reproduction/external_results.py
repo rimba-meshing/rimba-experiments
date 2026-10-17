@@ -34,7 +34,8 @@ def runtime_rows(campaign: dict) -> list[dict]:
         rows.append({"method": LABELS[case["method"]], **{key: case["workload"][key] for key in ("dataset", "sequence", "frames")},
                      "time_ms_per_frame": native["time_ms_per_frame"], "native_frame_count": native["native_frame_count"],
                      "native_trace_complete": native["native_trace_complete"], "timing_scope": native["scope"],
-                     "hardware": hardware, "source": case["source_commit"], "experiments_commit": case["experiments_commit"]})
+                     "hardware": hardware, "source": case["source_commit"], "experiments_commit": case["experiments_commit"],
+                     "image_id": case.get("image_id", ""), "recipe_sha256": case.get("recipe_sha256", "")})
     return rows
 
 
@@ -69,7 +70,8 @@ def supply(root: Path, campaign: dict, raw: Path, runner: Path) -> None:
     destination.mkdir()
     write_json(destination / "campaign.json", campaign["manifest"])
     write_json(raw / "external_campaign.json", {"experiments_commit": campaign["manifest"]["experiments_commit"],
-               "sources": campaign["manifest"]["sources"], "protocol_sha256": campaign["manifest"]["protocol_sha256"]})
+               "sources": campaign["manifest"]["sources"],
+               "images": {key: value.get("image_id", "") for key, value in campaign["manifest"]["environment"]["methods"].items()}, "protocol_sha256": campaign["manifest"]["protocol_sha256"]})
     write_csv(destination / "runtime.csv", runtime_rows(campaign))
     quality = []
     reference = raw.parent / "maicity_reference.ply"
@@ -83,7 +85,8 @@ def supply(root: Path, campaign: dict, raw: Path, runner: Path) -> None:
             raise ValueError("External quality evaluator does not match the RIMBA evaluator")
         quality.append({"method": LABELS[case["method"]], **{key: metrics[key] for key in ("precision", "recall", "f1", "tau_m", "voxel_size_m", "sample_points")},
                         "source": case["source_commit"], "mesh_sha256": case["mesh_sha256"], "reference_sha256": reference_sha,
-                        "evaluator_commit": metrics["evaluator_repository"]["commit"], "experiments_commit": case["experiments_commit"]})
+                        "evaluator_commit": metrics["evaluator_repository"]["commit"], "experiments_commit": case["experiments_commit"],
+                        "image_id": case.get("image_id", ""), "recipe_sha256": case.get("recipe_sha256", "")})
         evidence = destination / case["method"]
         evidence.mkdir()
         shutil.copyfile(case["result_path"], evidence / "result.json")

@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import List
 
 
-Matrix = list[list[float]]
+Matrix = List[List[float]]
 
 
 def _identity() -> Matrix:

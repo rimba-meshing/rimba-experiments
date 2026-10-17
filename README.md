@@ -90,8 +90,8 @@ because the evaluator samples points from the mesh randomly.
 
 ### Comparisons with other methods
 
-To include VDBFusion, PUMA, SLAMesh, ImMesh and CAD-Mesher, prepare their
-[environments](external/README.md) and run the external campaign first:
+To include VDBFusion, PUMA, SLAMesh, ImMesh and CAD-Mesher, see the [external-method instructions](external/README.md) and run the Docker
+campaign first:
 
 ```bash
 python3 reproduce_external.py

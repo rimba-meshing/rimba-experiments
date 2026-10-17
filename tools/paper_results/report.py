@@ -70,6 +70,7 @@ def header(publication) -> str:
         measurement += "\n% External experiments: " + campaign["experiments_commit"]
         measurement += "\n% External adapters SHA-256: " + campaign["protocol_sha256"]
         measurement += "".join("\n% External " + method + ": " + revision for method, revision in campaign["sources"].items())
+        measurement += "".join("\n% External image " + method + ": " + image for method, image in campaign.get("images", {}).items())
     reference = publication.metadata.get("reference_preparation")
     if reference:
         measurement += (f"\n% Reference: MaiCity {reference['sequence']}, {reference['frames']} frames, {reference['vertices']} vertices"

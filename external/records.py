@@ -19,7 +19,7 @@ def pointer(root, frame_count):
 def protocol(root):
     files = sorted(path for path in (root / "external").rglob("*") if path.is_file()
                    and not any(part == "source" or part.startswith(".") for part in path.relative_to(root / "external").parts)
-                   and path.suffix in {".py", ".patch", ".json", ".yml", ".yaml"})
+                   and path.suffix in {".py", ".patch", ".json", ".yml", ".yaml", ".txt", ".Dockerfile"})
     digest = hashlib.sha256()
     for path in files:
         digest.update(str(path.relative_to(root)).encode())
@@ -63,6 +63,9 @@ def cases(directory, manifest):
             raise ValueError("External case experiment revision differs from its campaign")
         if record["source_commit"] != manifest["sources"][record["method"]]:
             raise ValueError("External case source differs from its campaign")
+        method_image = manifest.get("environment", {}).get("methods", {}).get(record["method"], {})
+        if record.get("image_id") != method_image.get("image_id") or record.get("recipe_sha256") != method_image.get("recipe_sha256"):
+            raise ValueError("External case image differs from its campaign")
         workload = record["workload"]
         native = record["timing"]
         if not timing.accepted(record["method"], native["native_frame_count"], workload["frames"]):

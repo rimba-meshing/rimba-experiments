@@ -27,7 +27,7 @@ def run(case):
     environment = built_environment(case, workspace)
     sequence = sequence_view(case)
     config = "maicity.yaml" if case.workload.dataset == "maicity" else "kitti_meshing.yaml"
-    prefix = case.output / "cad_mesher_result" / config.removesuffix(".yaml") / "kitti"
+    prefix = case.output / "cad_mesher_result" / config[:-5] / "kitti"
     prefix.mkdir(parents=True)
     with Session(case, environment) as ros:
         ros.parameters(case.root / "external/cad_mesher/config" / config, {

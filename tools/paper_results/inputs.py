@@ -76,7 +76,7 @@ def external_rows(inputs: dict, kind: str) -> list[dict]:
                       "frames": int(row["frames"]), "time_ms_per_frame": value,
                       "ci95_half_width_ms_per_frame": "", "source": row["source"], "hardware": row["hardware"]}
             identity = (record["dataset"], record["sequence"], record["method"])
-        for key in ("native_frame_count", "native_trace_complete", "timing_scope", "experiments_commit", "mesh_sha256", "reference_sha256", "evaluator_commit"):
+        for key in ("native_frame_count", "native_trace_complete", "timing_scope", "experiments_commit", "mesh_sha256", "reference_sha256", "evaluator_commit", "image_id", "recipe_sha256"):
             if key in row:
                 record[key] = row[key]
         if identity in identities:
